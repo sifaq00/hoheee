@@ -164,6 +164,7 @@ export async function runWithTools(params: {
   execute: (call: ToolCall) => Promise<string>; // tool result as string
   maxIterations: number;
   maxTokens?: number;
+  timeoutMs?: number;
   onEvent?: (e: {
     type: "reasoning" | "tool_call" | "tool_result" | "content";
     text?: string;
@@ -180,7 +181,7 @@ export async function runWithTools(params: {
         if (p.reasoning) params.onEvent?.({ type: "reasoning", text: p.reasoning });
         if (p.content) params.onEvent?.({ type: "content", text: p.content });
       },
-      { tools: params.tools, maxTokens: params.maxTokens }
+      { tools: params.tools, maxTokens: params.maxTokens, timeoutMs: params.timeoutMs }
     );
     if (res.toolCalls.length === 0) return res.content;
     msgs.push({ role: "assistant", content: res.content, tool_calls: res.toolCalls });
@@ -195,6 +196,6 @@ export async function runWithTools(params: {
   const final = await streamLLM(msgs, (p) => {
     if (p.reasoning) params.onEvent?.({ type: "reasoning", text: p.reasoning });
     if (p.content) params.onEvent?.({ type: "content", text: p.content });
-  }, { maxTokens: params.maxTokens });
+  }, { maxTokens: params.maxTokens, timeoutMs: params.timeoutMs });
   return final.content;
 }

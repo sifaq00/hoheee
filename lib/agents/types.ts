@@ -19,12 +19,15 @@ export const MISSING_REPORT_RULE =
   `and never invent data for a missing report.`;
 
 // Shared retry: one internal re-call on throw, then throw to caller.
-export async function invokeWithRetry(messages: ChatMessage[]): Promise<string> {
+export async function invokeWithRetry(
+  messages: ChatMessage[],
+  opts: { maxTokens?: number; timeoutMs?: number } = {}
+): Promise<string> {
   try {
-    const res = await invokeLLM(messages);
+    const res = await invokeLLM(messages, opts);
     return res.content;
   } catch {
-    const res = await invokeLLM(messages);
+    const res = await invokeLLM(messages, opts);
     return res.content;
   }
 }
