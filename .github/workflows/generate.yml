@@ -5,10 +5,6 @@ on:
       mint:
         description: 'Solana token mint address (base58, 32-44 chars)'
         required: true
-      run_id:
-        description: 'Optional: runId from web (uuid). Empty = auto-generated.'
-        required: false
-        default: ''
 jobs:
   generate:
     runs-on: ubuntu-latest
@@ -28,8 +24,7 @@ jobs:
           LLM_API_URL: ${{ secrets.LLM_API_URL }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
-          ABLY_API_KEY: ${{ secrets.ABLY_API_KEY }}
-        run: npx tsx scripts/generate-report.ts "${{ inputs.mint }}" "${{ inputs.run_id }}"
+        run: npx tsx scripts/generate-report.ts "${{ inputs.mint }}"
       - name: Commit report
         run: |
           git config user.name "hoheee-bot"

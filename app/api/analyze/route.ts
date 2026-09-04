@@ -1,4 +1,5 @@
-import { MINT_REGEX, runAnalysis } from "@/lib/pipeline/orchestrator";
+import { MINT_REGEX } from "@/lib/pipeline/orchestrator";
+import { runFlashAnalysis } from "@/lib/pipeline/flash";
 import type { AgentEvent } from "@/lib/pipeline/state";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
         }
       };
       try {
-        await runAnalysis(mint, emit, { signal: req.signal });
+        await runFlashAnalysis(mint, emit);
       } catch (err) {
         emit({
           type: "error",

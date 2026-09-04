@@ -121,25 +121,10 @@ Note: the `POST /api/analyze` pipeline route is local-only — full runs take
 serves the pre-rendered static report pages; live analysis runs locally
 (`npm run dev`) or in GitHub Actions.
 
-## Production Live (/live)
+## Live analysis (root)
 
-Flow: user enters mint at `/live` → `POST /api/jobs` triggers the
-`Generate report` workflow via `workflow_dispatch` (`{mint, run_id}`) → job
-publishes each event to an Ably channel → browser subscribes with a
-short-lived token from `GET /api/jobs/<id>/token` (rewinds history, then
-live) → decision renders inline, `/r/<id>` link goes live ~1-2 min after
-rebuild.
-
-One-time setup (free, no credit card):
-
-1. Create an Ably app (free package) and copy a full API key.
-2. `gh secret set ABLY_API_KEY` (Actions publishes progress with it).
-3. In Vercel project env (Production, server-side): `GITHUB_TOKEN`
-   (classic PAT scope `repo` + `workflow`), `ABLY_API_KEY` (mints
-   subscribe+history tokens per run), plus `UPSTASH_REDIS_REST_URL` /
-   `UPSTASH_REDIS_REST_TOKEN` (demo rate limit only). Redeploy.
-4. Open `/live`, enter a mint. Without the env vars above, `/api/jobs`
-   returns an honest 500 "Server not configured".
-
-Demo limits: one job at a time (429 when busy), 3 jobs/hour/IP,
-60-minute watch timeout. `LLM_*` still not needed on Vercel.
+Enter a mint at `/`. `POST /api/analyze` streams the flash chain (mini
+analysts + 1 debate round + decider, `mimo-v2.5`) via SSE, under 45 seconds.
+Vercel env (Production): `LLM_API_URL`, `LLM_API_KEY`, `LLM_MODEL=mimo-v2.5`.
+Local/Actions deep runs keep `LLM_MODEL=mimo-v2.5-pro`. Demo guardrails:
+~12s per LLM call, partial failures continue as MISSING reports.

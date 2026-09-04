@@ -2,7 +2,6 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { MINT_REGEX, runAnalysis } from "@/lib/pipeline/orchestrator";
 import { MISSING_REPORT } from "@/lib/agents/types";
-import { createAblyPublisher as createPublisher } from "@/lib/progress/ably";
 import { isRunId, newRunId } from "@/lib/progress/ids";
 import type { AgentEvent } from "@/lib/pipeline/state";
 
@@ -47,9 +46,6 @@ async function main(): Promise<number> {
   const rawRunId = process.argv[3];
   const runId = rawRunId ? (isRunId(rawRunId) ? rawRunId : null) : newRunId();
   if (!runId) { console.error(USAGE); return 2; }
-  const progress = createPublisher(runId);
-  let terminal: "done" | "failed" = "failed";
-  try {
   const model = process.env.LLM_MODEL ?? "unknown";
   const createdAt = new Date().toISOString();
   const started = Date.now();
@@ -63,7 +59,6 @@ async function main(): Promise<number> {
 
   try {
     const emitWithProgress = (e: AgentEvent) => {
-      void progress.publish(e);
       logProgress(e);
       if (e.type === "token_found") {
         token = {
@@ -103,13 +98,11 @@ async function main(): Promise<number> {
     }
   } catch (err) {
     console.error(`[fatal] ${err instanceof Error ? err.message : String(err)}`);
-    await progress.flush();
     return 1;
   }
 
   if (!decision.trim()) {
     console.error("[fatal] empty decision");
-    await progress.flush();
     return 1;
   }
 
@@ -136,14 +129,9 @@ async function main(): Promise<number> {
   const rel = path.join("runs", `${runId}.json`);
   const body = JSON.stringify(output, null, 2);
   await writeFile(rel, body);
-  terminal = "done";
   const abs = path.resolve(rel);
   console.log(`[wrote] ${abs} (${Buffer.byteLength(body)} bytes)`);
-  await progress.flush();
   return 0;
-  } finally {
-    if (progress) await progress.setStatus(terminal);
-  }
 }
 
 main().then(
