@@ -37,29 +37,44 @@ interface LLMBody {
   messages: ChatMessage[];
   tools?: ToolSpec[];
   stream?: boolean;
+  max_tokens?: number;
 }
 
-async function callLLM(body: LLMBody, attempt = 0): Promise<Response> {
+async function callLLM(body: LLMBody, attempt = 0, timeoutMs?: number): Promise<Response> {
   const { url, key } = getEnv();
+  const controller = new AbortController();
+  const timer = timeoutMs !== undefined ? setTimeout(() => controller.abort(), timeoutMs) : undefined;
   try {
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
     if (!res.ok) throw new Error(`LLM ${res.status}: ${await res.text()}`);
     return res;
   } catch (err) {
-    if (attempt < 1) return callLLM(body, attempt + 1); // retry once (spec §8)
+    if (attempt < 1) return callLLM(body, attempt + 1, timeoutMs); // retry once (spec §8)
     throw err;
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
   }
 }
 
 export async function invokeLLM(
   messages: ChatMessage[],
-  opts: { tools?: ToolSpec[] } = {}
+  opts: { tools?: ToolSpec[]; maxTokens?: number; timeoutMs?: number } = {}
 ): Promise<LLMResult> {
-  const res = await callLLM({ model: getEnv().model, messages, tools: opts.tools });
+  const res = await callLLM(
+    {
+      model: getEnv().model,
+      messages,
+      tools: opts.tools,
+      ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
+    },
+    0,
+    opts.timeoutMs
+  );
   const data = await res.json();
   const m = data.choices?.[0]?.message;
   if (!m) throw new Error("LLM malformed response");
@@ -74,9 +89,19 @@ export async function invokeLLM(
 export async function streamLLM(
   messages: ChatMessage[],
   onChunk: (part: { content?: string; reasoning?: string }) => void,
-  opts: { tools?: ToolSpec[] } = {}
+  opts: { tools?: ToolSpec[]; maxTokens?: number; timeoutMs?: number } = {}
 ): Promise<LLMResult> {
-  const res = await callLLM({ model: getEnv().model, messages, tools: opts.tools, stream: true });
+  const res = await callLLM(
+    {
+      model: getEnv().model,
+      messages,
+      tools: opts.tools,
+      stream: true,
+      ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
+    },
+    0,
+    opts.timeoutMs
+  );
   const reader = res.body!.getReader();
   const decoder = new TextDecoder();
   let buf = "";
@@ -138,6 +163,7 @@ export async function runWithTools(params: {
   tools: ToolSpec[];
   execute: (call: ToolCall) => Promise<string>; // tool result as string
   maxIterations: number;
+  maxTokens?: number;
   onEvent?: (e: {
     type: "reasoning" | "tool_call" | "tool_result" | "content";
     text?: string;
@@ -154,7 +180,7 @@ export async function runWithTools(params: {
         if (p.reasoning) params.onEvent?.({ type: "reasoning", text: p.reasoning });
         if (p.content) params.onEvent?.({ type: "content", text: p.content });
       },
-      { tools: params.tools }
+      { tools: params.tools, maxTokens: params.maxTokens }
     );
     if (res.toolCalls.length === 0) return res.content;
     msgs.push({ role: "assistant", content: res.content, tool_calls: res.toolCalls });
@@ -169,6 +195,6 @@ export async function runWithTools(params: {
   const final = await streamLLM(msgs, (p) => {
     if (p.reasoning) params.onEvent?.({ type: "reasoning", text: p.reasoning });
     if (p.content) params.onEvent?.({ type: "content", text: p.content });
-  });
+  }, { maxTokens: params.maxTokens });
   return final.content;
 }
