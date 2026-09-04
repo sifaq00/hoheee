@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { isRunId } from "@/lib/progress/ids";
 import type { AgentEvent } from "@/lib/pipeline/state";
 import type { ToolBadge } from "@/components/AgentCard";
 import { MINT_REGEX } from "@/app/page";
@@ -101,16 +103,26 @@ function aggregate(events: unknown[]): {
   return { token, agents, order, debates, decision };
 }
 
-export default function LivePage() {
+function LiveJob() {
   const [mint, setMint] = useState("");
   const [touched, setTouched] = useState(false);
-  const [runId, setRunId] = useState<string | null>(null);
   const [feed, setFeed] = useState<EventPage>({ events: [], cursor: 0 });
-  const [status, setStatus] = useState<JobStatus>("idle");
-  const [error, setError] = useState<string | null>(null);
   const cursorRef = useRef(0);
   const stagnantRef = useRef(0);
   const startedAtRef = useRef(0);
+  const params = useSearchParams();
+  // Attach to an existing job, e.g. /live?runId=<uuid> — derived during
+  // render (no setState-in-effect).
+  const urlId = params.get("runId");
+  const [runId, setRunId] = useState<string | null>(() =>
+    urlId && isRunId(urlId) ? urlId : null
+  );
+  const [status, setStatus] = useState<JobStatus>(() =>
+    urlId && isRunId(urlId) ? "running" : "idle"
+  );
+  const [error, setError] = useState<string | null>(() =>
+    urlId && !isRunId(urlId) ? "Invalid runId in URL" : null
+  );
 
   const trimmed = mint.trim();
   const valid = MINT_REGEX.test(trimmed);
@@ -158,6 +170,7 @@ export default function LivePage() {
 
   useEffect(() => {
     if (!runId) return;
+    if (!startedAtRef.current) startedAtRef.current = Date.now();
     let stopped = false;
     const timer = setInterval(() => {
       void (async () => {
@@ -302,5 +315,13 @@ export default function LivePage() {
         </p>
       </footer>
     </div>
+  );
+}
+
+export default function LivePage() {
+  return (
+    <Suspense>
+      <LiveJob />
+    </Suspense>
   );
 }
