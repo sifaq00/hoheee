@@ -283,53 +283,61 @@ function LiveJob() {
 
         </div>
 
-        <div className="flex flex-col gap-4" data-testid="live-feed">
+        <div className="flex flex-col gap-6" data-testid="live-feed">
           {error && (
             <p role="alert" className="rounded border border-[#ef4444] p-3 text-sm text-[#ef4444]">
               {error}
             </p>
           )}
           {busy && <p className="text-sm text-zinc-400">Polling… status: {status}</p>}
-          {(view.token || view.decision) && (
-            <div className="grid items-start gap-4 xl:grid-cols-2">
-              {view.token && (
-                <div className="min-w-0">
-                  <TokenCard
-                    name={view.token.name}
-                    price={view.token.price}
-                    liquidity={view.token.liquidity}
-                    change24h={view.token.change24h}
-                  />
-                </div>
-              )}
-              {view.decision && (
-                <div className="min-w-0">
-                  <DecisionCard markdown={view.decision} />
-                </div>
-              )}
-            </div>
+          {view.decision && (
+            <section className="flex flex-col gap-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Final decision</h2>
+              <DecisionCard markdown={view.decision} />
+            </section>
+          )}
+          {view.token && (
+            <section className="flex flex-col gap-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Token</h2>
+              <TokenCard
+                name={view.token.name}
+                price={view.token.price}
+                liquidity={view.token.liquidity}
+                change24h={view.token.change24h}
+              />
+            </section>
           )}
           {view.order.length > 0 && (
-            <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {view.order.map((key) => {
-                const a = view.agents[key];
-                if (!a) return null;
-                return (
-                  <div key={key} className="min-w-0">
-                    <AgentCard agent={a.agent} status={a.status} reasoning={a.reasoning} tools={a.tools} report={a.report} />
-                  </div>
-                );
-              })}
-            </div>
+            <section className="flex flex-col gap-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                Analysts ({view.order.length})
+              </h2>
+              <div className="grid items-start gap-4 xl:grid-cols-2">
+                {view.order.map((key) => {
+                  const a = view.agents[key];
+                  if (!a) return null;
+                  return (
+                    <div key={key} className="min-w-0">
+                      <AgentCard agent={a.agent} status={a.status} reasoning={a.reasoning} tools={a.tools} report={a.report} />
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
           )}
           {view.debates.length > 0 && (
-            <div className="grid items-start gap-4 lg:grid-cols-2">
-              {view.debates.map((d) => (
-                <div key={d.id} className="min-w-0">
-                  <DebateCard phase={d.phase} round={d.round} side={d.side} text={d.text} />
-                </div>
-              ))}
-            </div>
+            <section className="flex flex-col gap-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                Debate ({view.debates.length})
+              </h2>
+              <div className="grid items-start gap-4 lg:grid-cols-2">
+                {view.debates.map((d) => (
+                  <div key={d.id} className="min-w-0">
+                    <DebateCard phase={d.phase} round={d.round} side={d.side} text={d.text} />
+                  </div>
+                ))}
+              </div>
+            </section>
           )}
         </div>
       </main>
