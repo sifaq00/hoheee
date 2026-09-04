@@ -5,6 +5,10 @@ on:
       mint:
         description: 'Solana token mint address (base58, 32-44 chars)'
         required: true
+      run_id:
+        description: 'Optional: runId from web (uuid). Empty = auto-generated.'
+        required: false
+        default: ''
 jobs:
   generate:
     runs-on: ubuntu-latest
@@ -24,7 +28,9 @@ jobs:
           LLM_API_URL: ${{ secrets.LLM_API_URL }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
-        run: npx tsx scripts/generate-report.ts "${{ inputs.mint }}"
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+        run: npx tsx scripts/generate-report.ts "${{ inputs.mint }}" "${{ inputs.run_id }}"
       - name: Commit report
         run: |
           git config user.name "hoheee-bot"

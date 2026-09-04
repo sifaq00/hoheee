@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "vitest run tests/tools.test.ts",
+    "test": "vitest run tests/tools.test.ts tests/progress.test.ts tests/jobs.test.ts tests/live-merge.test.ts",
     "test:e2e": "vitest run tests/e2e.test.ts"
   },
   "dependencies": {

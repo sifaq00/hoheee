@@ -1,11 +1,12 @@
-import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { MINT_REGEX, runAnalysis } from "@/lib/pipeline/orchestrator";
 import { MISSING_REPORT } from "@/lib/agents/types";
+import { createPublisher } from "@/lib/progress/publisher";
+import { isRunId, newRunId } from "@/lib/progress/ids";
 import type { AgentEvent } from "@/lib/pipeline/state";
 
-const USAGE = "Usage: tsx scripts/generate-report.ts <mint>\n  mint: Solana base58 address, 32-44 chars";
+const USAGE = "Usage: tsx scripts/generate-report.ts <mint> [runId]\n  mint: Solana base58 address, 32-44 chars\n  runId: optional uuid (auto-generated when empty)";
 
 interface DebateTurn {
   phase: string;
@@ -43,7 +44,12 @@ async function main(): Promise<number> {
     return 2;
   }
 
-  const runId = randomUUID();
+  const rawRunId = process.argv[3];
+  const runId = rawRunId ? (isRunId(rawRunId) ? rawRunId : null) : newRunId();
+  if (!runId) { console.error(USAGE); return 2; }
+  const progress = createPublisher(runId);
+  let terminal: "done" | "failed" = "failed";
+  try {
   const model = process.env.LLM_MODEL ?? "unknown";
   const createdAt = new Date().toISOString();
   const started = Date.now();
@@ -56,7 +62,8 @@ async function main(): Promise<number> {
   let token = { name: "", symbol: "", price: 0, liquidity: 0, change24h: 0 };
 
   try {
-    const state = await runAnalysis(mint, (e) => {
+    const emitWithProgress = (e: AgentEvent) => {
+      void progress.publish(e);
       logProgress(e);
       if (e.type === "token_found") {
         token = {
@@ -74,7 +81,8 @@ async function main(): Promise<number> {
       } else if (e.type === "decision") {
         decision = e.markdown;
       }
-    });
+    };
+    const state = await runAnalysis(mint, emitWithProgress);
 
     // Fill honest gaps: failed analysts emit error without agent_report.
     for (const slot of ["onchain", "technical", "sentiment", "news"] as const) {
@@ -95,11 +103,13 @@ async function main(): Promise<number> {
     }
   } catch (err) {
     console.error(`[fatal] ${err instanceof Error ? err.message : String(err)}`);
+    await progress.flush();
     return 1;
   }
 
   if (!decision.trim()) {
     console.error("[fatal] empty decision");
+    await progress.flush();
     return 1;
   }
 
@@ -126,9 +136,14 @@ async function main(): Promise<number> {
   const rel = path.join("runs", `${runId}.json`);
   const body = JSON.stringify(output, null, 2);
   await writeFile(rel, body);
+  terminal = "done";
   const abs = path.resolve(rel);
   console.log(`[wrote] ${abs} (${Buffer.byteLength(body)} bytes)`);
+  await progress.flush();
   return 0;
+  } finally {
+    if (progress) await progress.setStatus(terminal);
+  }
 }
 
 main().then(

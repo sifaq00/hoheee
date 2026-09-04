@@ -120,3 +120,25 @@ Note: the `POST /api/analyze` pipeline route is local-only — full runs take
 13-20 minutes, far beyond the Hobby function cap (`maxDuration = 300`). Vercel
 serves the pre-rendered static report pages; live analysis runs locally
 (`npm run dev`) or in GitHub Actions.
+
+## Production Live (/live)
+
+Flow: user enters mint at `/live` → `POST /api/jobs` triggers the
+`Generate report` workflow via `workflow_dispatch` (`{mint, run_id}`) → job publishes
+each event to Upstash Redis → browser polls
+`GET /api/jobs/<id>/events?cursor=n` every 5 seconds → decision renders inline,
+`/r/<id>` link goes live ~1-2 min after rebuild.
+
+One-time setup (free, no credit card):
+
+1. Create a Redis database in the Upstash dashboard (region near Vercel).
+2. `gh secret set UPSTASH_REDIS_REST_URL` and
+   `gh secret set UPSTASH_REDIS_REST_TOKEN` (values from the Upstash dashboard).
+3. In Vercel project env (Production, server-side): `GITHUB_TOKEN`
+   (classic PAT scope `repo` + `workflow`), `UPSTASH_REDIS_REST_URL`,
+   `UPSTASH_REDIS_REST_TOKEN`. Redeploy.
+4. Open `/live`, enter a mint. Without all three env vars above, `/api/jobs`
+   returns an honest 500 "Server not configured".
+
+Demo limits: one job at a time (429 when busy), 3 jobs/hour/IP,
+60-minute watch timeout. `LLM_*` still not needed on Vercel.
