@@ -3,7 +3,7 @@
 Stage-1 proof of concept: paste a Solana token mint address, get a multi-agent
 research report with a final trading decision. Research tool, not financial advice.
 
-Built on research from Bullseye / TradingAgents (arXiv 2412.20138, Apache 2.0).
+Research background: arXiv 2412.20138.
 
 ## Setup
 
