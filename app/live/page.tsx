@@ -218,7 +218,8 @@ function LiveJob() {
 
   return (
     <div className="min-h-full flex flex-col items-center px-4 py-10">
-      <main className="w-full max-w-2xl flex flex-col gap-6">
+      <main className="w-full max-w-7xl flex flex-col gap-6">
+        <div className="w-full max-w-2xl mx-auto flex flex-col gap-6">
         <header className="flex flex-col gap-2 border-b border-zinc-800 pb-4">
           <h1 className="text-xl font-bold tracking-tight">
             Hoheee <span className="text-[#22c55e]">—</span> Live Job
@@ -280,6 +281,8 @@ function LiveJob() {
           </p>
         )}
 
+        </div>
+
         <div className="flex flex-col gap-4" data-testid="live-feed">
           {error && (
             <p role="alert" className="rounded border border-[#ef4444] p-3 text-sm text-[#ef4444]">
@@ -287,25 +290,47 @@ function LiveJob() {
             </p>
           )}
           {busy && <p className="text-sm text-zinc-400">Polling… status: {status}</p>}
-          {view.decision && <DecisionCard markdown={view.decision} />}
-          {view.token && (
-            <TokenCard
-              name={view.token.name}
-              price={view.token.price}
-              liquidity={view.token.liquidity}
-              change24h={view.token.change24h}
-            />
+          {(view.token || view.decision) && (
+            <div className="grid items-start gap-4 xl:grid-cols-2">
+              {view.token && (
+                <div className="min-w-0">
+                  <TokenCard
+                    name={view.token.name}
+                    price={view.token.price}
+                    liquidity={view.token.liquidity}
+                    change24h={view.token.change24h}
+                  />
+                </div>
+              )}
+              {view.decision && (
+                <div className="min-w-0">
+                  <DecisionCard markdown={view.decision} />
+                </div>
+              )}
+            </div>
           )}
-          {view.order.map((key) => {
-            const a = view.agents[key];
-            if (!a) return null;
-            return (
-              <AgentCard key={key} agent={a.agent} status={a.status} reasoning={a.reasoning} tools={a.tools} report={a.report} />
-            );
-          })}
-          {view.debates.map((d) => (
-            <DebateCard key={d.id} phase={d.phase} round={d.round} side={d.side} text={d.text} />
-          ))}
+          {view.order.length > 0 && (
+            <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {view.order.map((key) => {
+                const a = view.agents[key];
+                if (!a) return null;
+                return (
+                  <div key={key} className="min-w-0">
+                    <AgentCard agent={a.agent} status={a.status} reasoning={a.reasoning} tools={a.tools} report={a.report} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {view.debates.length > 0 && (
+            <div className="grid items-start gap-4 lg:grid-cols-2">
+              {view.debates.map((d) => (
+                <div key={d.id} className="min-w-0">
+                  <DebateCard phase={d.phase} round={d.round} side={d.side} text={d.text} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
       <footer className="mt-6 w-full max-w-2xl border-t border-zinc-800 pt-4 text-xs leading-relaxed text-zinc-500">
