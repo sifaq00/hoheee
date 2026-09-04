@@ -124,20 +124,21 @@ serves the pre-rendered static report pages; live analysis runs locally
 ## Production Live (/live)
 
 Flow: user enters mint at `/live` → `POST /api/jobs` triggers the
-`Generate report` workflow via `workflow_dispatch` (`{mint, run_id}`) → job publishes
-each event to Upstash Redis → browser polls
-`GET /api/jobs/<id>/events?cursor=n` every 5 seconds → decision renders inline,
-`/r/<id>` link goes live ~1-2 min after rebuild.
+`Generate report` workflow via `workflow_dispatch` (`{mint, run_id}`) → job
+publishes each event to an Ably channel → browser subscribes with a
+short-lived token from `GET /api/jobs/<id>/token` (rewinds history, then
+live) → decision renders inline, `/r/<id>` link goes live ~1-2 min after
+rebuild.
 
 One-time setup (free, no credit card):
 
-1. Create a Redis database in the Upstash dashboard (region near Vercel).
-2. `gh secret set UPSTASH_REDIS_REST_URL` and
-   `gh secret set UPSTASH_REDIS_REST_TOKEN` (values from the Upstash dashboard).
+1. Create an Ably app (free package) and copy a full API key.
+2. `gh secret set ABLY_API_KEY` (Actions publishes progress with it).
 3. In Vercel project env (Production, server-side): `GITHUB_TOKEN`
-   (classic PAT scope `repo` + `workflow`), `UPSTASH_REDIS_REST_URL`,
-   `UPSTASH_REDIS_REST_TOKEN`. Redeploy.
-4. Open `/live`, enter a mint. Without all three env vars above, `/api/jobs`
+   (classic PAT scope `repo` + `workflow`), `ABLY_API_KEY` (mints
+   subscribe+history tokens per run), plus `UPSTASH_REDIS_REST_URL` /
+   `UPSTASH_REDIS_REST_TOKEN` (demo rate limit only). Redeploy.
+4. Open `/live`, enter a mint. Without the env vars above, `/api/jobs`
    returns an honest 500 "Server not configured".
 
 Demo limits: one job at a time (429 when busy), 3 jobs/hour/IP,

@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { MINT_REGEX, runAnalysis } from "@/lib/pipeline/orchestrator";
 import { MISSING_REPORT } from "@/lib/agents/types";
-import { createPublisher } from "@/lib/progress/publisher";
+import { createAblyPublisher as createPublisher } from "@/lib/progress/ably";
 import { isRunId, newRunId } from "@/lib/progress/ids";
 import type { AgentEvent } from "@/lib/pipeline/state";
 

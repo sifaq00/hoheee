@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "../app/api/jobs/route";
-import { GET } from "../app/api/jobs/[id]/events/route";
+import { GET } from "../app/api/jobs/[id]/token/route";
 
 function req(body: unknown): Request {
   return new Request("http://x/api/jobs", { method: "POST", body: JSON.stringify(body) });
 }
 beforeEach(() => {
   vi.stubEnv("GITHUB_TOKEN", "gh");
+  vi.stubEnv("ABLY_API_KEY", "appId.keyId:keySecret");
   vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://demo.upstash.io");
   vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "tok");
   global.fetch = vi.fn(async (url: unknown, init?: RequestInit) => {
@@ -47,13 +48,6 @@ describe("POST /api/jobs", () => {
     expect(rlBody[1][0]).toBe("EXPIRE");
     expect(rlBody[1][2]).toBe(7200);
   });
-  it("writes meta SET + EXPIRE 21600 in one pipeline", async () => {
-    const res = await POST(req({ mint: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263" }));
-    expect(res.status).toBe(200);
-    const calls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls;
-    const bodies = calls.filter((c) => String(c[0]).includes("/pipeline")).map((c) => JSON.parse(String(c[1]?.body ?? "null")));
-    expect(bodies.some((b) => b[0]?.[0] === "SET" && String(b[0][1]).includes(":meta") && b[1]?.[0] === "EXPIRE" && b[1][2] === 21600)).toBe(true);
-  });
   it("returns 429 when a job is running", async () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(async (url: unknown) => {
       const u = String(url);
@@ -65,31 +59,35 @@ describe("POST /api/jobs", () => {
   });
 });
 
-describe("GET /api/jobs/[id]/events", () => {
+describe("GET /api/jobs/[id]/token", () => {
   it("rejects malformed id", async () => {
     const res = await GET(new Request("http://x"), { params: Promise.resolve({ id: ".." }) });
     expect(res.status).toBe(400);
+    expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(0);
   });
-  it("return events + cursor + status", async () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(async (url: unknown) => {
-      const u = String(url);
-      if (u.includes("lrange")) return { ok: true, status: 200, json: async () => ({ result: [JSON.stringify({ type: "agent_start", agent: "onchain" })] }) } as unknown as Response;
-      if (u.includes("get")) return { ok: true, status: 200, json: async () => ({ result: JSON.stringify({ status: "running" }) }) } as unknown as Response;
-      return { ok: true, status: 200, json: async () => ({ result: null }) } as unknown as Response;
+  it("returns a channel-scoped token request", async () => {
+    const id = "11111111-1111-1111-1111-111111111111";
+    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(async (url: unknown, init?: RequestInit) => {
+      expect(String(url)).toBe("https://rest.ably.io/keys/appId.keyId/requestToken");
+      const body = JSON.parse(String((init as { body?: unknown })?.body ?? "null"));
+      expect(body.capability).toEqual({ [`run:${id}`]: ["subscribe", "history"] });
+      return { ok: true, status: 200, json: async () => ({ token: "tok123", keyName: "appId.keyId" }) } as unknown as Response;
     });
-    const res = await GET(new Request("http://x?cursor=0"), { params: Promise.resolve({ id: "11111111-1111-1111-1111-111111111111" }) });
+    const res = await GET(new Request("http://x"), { params: Promise.resolve({ id }) });
     expect(res.status).toBe(200);
-    const body = await res.json() as { events: unknown[]; cursor: number; total: number; status: string };
-    expect(body.events.length).toBe(1);
-    expect(body.cursor).toBe(1);
-    expect(body.total).toBe(1);
-    expect(body.status).toBe("running");
+    const body = (await res.json()) as { token: string };
+    expect(body.token).toBe("tok123");
   });
-  it("returns 502 when Upstash is down", async () => {
+  it("returns 500 without key and 502 when Ably is down", async () => {
+    vi.stubEnv("ABLY_API_KEY", "");
+    const id = "11111111-1111-1111-1111-111111111111";
+    const r1 = await GET(new Request("http://x"), { params: Promise.resolve({ id }) });
+    expect(r1.status).toBe(500);
+    vi.stubEnv("ABLY_API_KEY", "appId.keyId:keySecret");
     (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(async () => {
-      return { ok: false, status: 500, json: async () => ({ result: null }) } as unknown as Response;
+      return { ok: false, status: 500, json: async () => ({}) } as unknown as Response;
     });
-    const res = await GET(new Request("http://x?cursor=0"), { params: Promise.resolve({ id: "11111111-1111-1111-1111-111111111111" }) });
-    expect(res.status).toBe(502);
+    const r2 = await GET(new Request("http://x"), { params: Promise.resolve({ id }) });
+    expect(r2.status).toBe(502);
   });
 });

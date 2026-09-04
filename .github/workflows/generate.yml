@@ -28,8 +28,7 @@ jobs:
           LLM_API_URL: ${{ secrets.LLM_API_URL }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
-          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
-          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          ABLY_API_KEY: ${{ secrets.ABLY_API_KEY }}
         run: npx tsx scripts/generate-report.ts "${{ inputs.mint }}" "${{ inputs.run_id }}"
       - name: Commit report
         run: |
@@ -37,6 +36,7 @@ jobs:
           git config user.email "hoheee-bot@users.noreply.github.com"
           git add runs
           git commit -m "chore: add report $(ls -t runs/*.json | head -1 | xargs basename -s .json)" || echo "no changes"
+          git pull --rebase --autostash || echo "rebase skipped"
           git push
       - name: Summary
         run: echo "Report generated for mint ${{ inputs.mint }} — Vercel rebuilds on push." >> "$GITHUB_STEP_SUMMARY"

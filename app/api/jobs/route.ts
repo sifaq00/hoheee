@@ -51,7 +51,5 @@ export async function POST(req: Request) {
     body: JSON.stringify({ ref: "main", inputs: { mint, run_id: runId } }),
   }).catch(() => null);
   if (!dispatched || !dispatched.ok) return Response.json({ error: "Failed to trigger Actions" }, { status: 502 });
-  const metaVal = JSON.stringify({ status: "running", mint, startedAt: new Date().toISOString() });
-  await upstashPipeline([["SET", `run:${runId}:meta`, metaVal], ["EXPIRE", `run:${runId}:meta`, 21600]]).catch(() => undefined);
   return Response.json({ runId });
 }
