@@ -116,11 +116,6 @@ CMS for the static report pages); never gitignore `runs/`.
 3. Every push (including Actions report commits) rebuilds and publishes new
    `/r/[id]` pages.
 
-Note: the `POST /api/analyze` pipeline route is local-only — full runs take
-13-20 minutes, far beyond the Hobby function cap (`maxDuration = 300`). Vercel
-serves the pre-rendered static report pages; live analysis runs locally
-(`npm run dev`) or in GitHub Actions.
-
 ## Live analysis (root)
 
 Enter a mint at `/`. `POST /api/analyze` streams the flash chain (mini

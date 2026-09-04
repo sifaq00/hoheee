@@ -437,8 +437,8 @@ export default function Home() {
       </main>
       <footer className="mt-6 w-full max-w-2xl border-t border-zinc-800 pt-4 text-xs leading-relaxed text-zinc-500">
           <p>
-            Each analysis takes about a minute and consumes significant
-            reasoning-model tokens across analysts, debates, and risk review.
+            Each flash run takes under a minute: mini analysts plus one debate
+            round, no risk review.
             New tokens have thin data — low liquidity and short history make
             signals unreliable. This system can be wrong: output is automated
             research, not financial advice.

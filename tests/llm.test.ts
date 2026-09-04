@@ -32,4 +32,22 @@ describe("invokeLLM caps", () => {
     }) as unknown as typeof fetch;
     await expect(invokeLLM([{ role: "user", content: "x" }], { timeoutMs: 30 })).rejects.toThrow();
   });
+
+  it("does not retry an aborted call (fetch called exactly once)", async () => {
+    const abortErr = new DOMException("aborted", "AbortError");
+    global.fetch = vi.fn(async () => {
+      throw abortErr;
+    }) as unknown as typeof fetch;
+    await expect(invokeLLM([{ role: "user", content: "x" }], { timeoutMs: 30 })).rejects.toThrow();
+    expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(1);
+  });
+
+  it("retries once on non-abort errors", async () => {
+    global.fetch = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => CHOICES }) as unknown as typeof fetch;
+    await invokeLLM([{ role: "user", content: "x" }]);
+    expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(2);
+  });
 });

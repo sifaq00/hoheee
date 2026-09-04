@@ -40,21 +40,27 @@ interface LLMBody {
   max_tokens?: number;
 }
 
-async function callLLM(body: LLMBody, attempt = 0, timeoutMs?: number): Promise<Response> {
+async function callLLM(body: LLMBody, attempt = 0, timeoutMs?: number, signal?: AbortSignal): Promise<Response> {
   const { url, key } = getEnv();
-  const controller = new AbortController();
-  const timer = timeoutMs !== undefined ? setTimeout(() => controller.abort(), timeoutMs) : undefined;
+  const timeoutController = new AbortController();
+  const timer = timeoutMs !== undefined ? setTimeout(() => timeoutController.abort(), timeoutMs) : undefined;
+  const combined =
+    signal && timeoutMs !== undefined
+      ? AbortSignal.any([signal, timeoutController.signal])
+      : (signal ?? (timeoutMs !== undefined ? timeoutController.signal : undefined));
   try {
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify(body),
-      signal: controller.signal,
+      ...(combined ? { signal: combined } : {}),
     });
     if (!res.ok) throw new Error(`LLM ${res.status}: ${await res.text()}`);
     return res;
   } catch (err) {
-    if (attempt < 1) return callLLM(body, attempt + 1, timeoutMs); // retry once (spec §8)
+    if (err instanceof Error && err.name === "AbortError") throw err;
+    if (signal?.aborted || combined?.aborted) throw err;
+    if (attempt < 1) return callLLM(body, attempt + 1, timeoutMs, signal); // retry once (spec §8)
     throw err;
   } finally {
     if (timer !== undefined) clearTimeout(timer);
@@ -63,7 +69,7 @@ async function callLLM(body: LLMBody, attempt = 0, timeoutMs?: number): Promise<
 
 export async function invokeLLM(
   messages: ChatMessage[],
-  opts: { tools?: ToolSpec[]; maxTokens?: number; timeoutMs?: number } = {}
+  opts: { tools?: ToolSpec[]; maxTokens?: number; timeoutMs?: number; signal?: AbortSignal } = {}
 ): Promise<LLMResult> {
   const res = await callLLM(
     {
@@ -73,7 +79,8 @@ export async function invokeLLM(
       ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
     },
     0,
-    opts.timeoutMs
+    opts.timeoutMs,
+    opts.signal
   );
   const data = await res.json();
   const m = data.choices?.[0]?.message;
@@ -89,7 +96,7 @@ export async function invokeLLM(
 export async function streamLLM(
   messages: ChatMessage[],
   onChunk: (part: { content?: string; reasoning?: string }) => void,
-  opts: { tools?: ToolSpec[]; maxTokens?: number; timeoutMs?: number } = {}
+  opts: { tools?: ToolSpec[]; maxTokens?: number; timeoutMs?: number; signal?: AbortSignal } = {}
 ): Promise<LLMResult> {
   const res = await callLLM(
     {
@@ -100,7 +107,8 @@ export async function streamLLM(
       ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
     },
     0,
-    opts.timeoutMs
+    opts.timeoutMs,
+    opts.signal
   );
   const reader = res.body!.getReader();
   const decoder = new TextDecoder();
@@ -165,6 +173,7 @@ export async function runWithTools(params: {
   maxIterations: number;
   maxTokens?: number;
   timeoutMs?: number;
+  signal?: AbortSignal;
   onEvent?: (e: {
     type: "reasoning" | "tool_call" | "tool_result" | "content";
     text?: string;
@@ -181,7 +190,7 @@ export async function runWithTools(params: {
         if (p.reasoning) params.onEvent?.({ type: "reasoning", text: p.reasoning });
         if (p.content) params.onEvent?.({ type: "content", text: p.content });
       },
-      { tools: params.tools, maxTokens: params.maxTokens, timeoutMs: params.timeoutMs }
+      { tools: params.tools, maxTokens: params.maxTokens, timeoutMs: params.timeoutMs, signal: params.signal }
     );
     if (res.toolCalls.length === 0) return res.content;
     msgs.push({ role: "assistant", content: res.content, tool_calls: res.toolCalls });
@@ -196,6 +205,6 @@ export async function runWithTools(params: {
   const final = await streamLLM(msgs, (p) => {
     if (p.reasoning) params.onEvent?.({ type: "reasoning", text: p.reasoning });
     if (p.content) params.onEvent?.({ type: "content", text: p.content });
-  }, { maxTokens: params.maxTokens, timeoutMs: params.timeoutMs });
+  }, { maxTokens: params.maxTokens, timeoutMs: params.timeoutMs, signal: params.signal });
   return final.content;
 }

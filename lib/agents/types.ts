@@ -19,14 +19,17 @@ export const MISSING_REPORT_RULE =
   `and never invent data for a missing report.`;
 
 // Shared retry: one internal re-call on throw, then throw to caller.
+// Abort failures (timeout or external signal) never retry — flash 45s budget.
 export async function invokeWithRetry(
   messages: ChatMessage[],
-  opts: { maxTokens?: number; timeoutMs?: number } = {}
+  opts: { maxTokens?: number; timeoutMs?: number; signal?: AbortSignal } = {}
 ): Promise<string> {
   try {
     const res = await invokeLLM(messages, opts);
     return res.content;
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") throw err;
+    if (opts.signal?.aborted) throw err;
     const res = await invokeLLM(messages, opts);
     return res.content;
   }

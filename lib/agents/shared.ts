@@ -25,6 +25,7 @@ export async function runAnalyst(params: {
   emit: (e: AgentEvent) => void;
   maxTokens?: number;
   timeoutMs?: number;
+  signal?: AbortSignal;
 }): Promise<string> {
   const tools = params.toolNames.map((n) => TOOL_SPECS[n]).filter(Boolean);
   const messages: ChatMessage[] = [
@@ -53,6 +54,7 @@ export async function runAnalyst(params: {
     maxIterations: params.cap,
     maxTokens: params.maxTokens,
     timeoutMs: params.timeoutMs,
+    signal: params.signal,
     onEvent: (e) => {
       if (e.type === "reasoning") params.emit({ type: "reasoning", agent: params.agent, text: e.text ?? "" });
       else if (e.type === "tool_call")

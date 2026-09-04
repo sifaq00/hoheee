@@ -50,9 +50,11 @@ async function runFlashSlot(
   summary: TokenSummary,
   systemRole: string,
   toolNames: string[],
-  emit: (e: AgentEvent) => void
+  emit: (e: AgentEvent) => void,
+  signal?: AbortSignal
 ): Promise<string> {
   emit({ type: "agent_start", agent });
+  if (signal?.aborted) return MISSING_REPORT;
   try {
     const report = await runAnalyst({
       agent,
@@ -63,12 +65,13 @@ async function runFlashSlot(
       cap: 1,
       maxTokens: 400,
       timeoutMs: 12000,
+      signal,
       emit,
     });
     emit({ type: "agent_report", agent, report });
     return report;
   } catch (err) {
-    emit({ type: "error", agent, message: err instanceof Error ? err.message : String(err) });
+    if (!signal?.aborted) emit({ type: "error", agent, message: err instanceof Error ? err.message : String(err) });
     return MISSING_REPORT;
   }
 }
@@ -79,8 +82,10 @@ function err(emit: (e: AgentEvent) => void, agent: AgentId, unknown: unknown): v
 
 export async function runFlashAnalysis(
   mint: string,
-  emit: (e: AgentEvent) => void
+  emit: (e: AgentEvent) => void,
+  opts: { signal?: AbortSignal } = {}
 ): Promise<PipelineState> {
+  const signal = opts.signal;
   if (!MINT_REGEX.test(mint)) throw new Error("Invalid Solana mint address");
 
   let summary: TokenSummary | null;
@@ -117,7 +122,7 @@ export async function runFlashAnalysis(
     { agent: "news", role: NEWS_ROLE, tools: NEWS_TOOLS },
   ];
   const settled = await Promise.allSettled(
-    slots.map((s) => runFlashSlot(s.agent, mint, summary, s.role, s.tools, emit))
+    slots.map((s) => runFlashSlot(s.agent, mint, summary, s.role, s.tools, emit, signal))
   );
   settled.forEach((r, i) => {
     state.reports[slots[i].agent] = r.status === "fulfilled" ? r.value : MISSING_REPORT;
@@ -130,7 +135,7 @@ export async function runFlashAnalysis(
   } satisfies ReportsBundle;
 
   let bullArg = "";
-  try {
+  if (!signal?.aborted) try {
     const msgs: ChatMessage[] = [
       { role: "system", content: BULL_SYSTEM },
       {
@@ -142,15 +147,15 @@ export async function runFlashAnalysis(
           "Rebut the bear case directly or open with your strongest case.",
       },
     ];
-    bullArg = await invokeWithRetry(msgs, { maxTokens: 300, timeoutMs: 12000 });
+    bullArg = await invokeWithRetry(msgs, { maxTokens: 300, timeoutMs: 12000, signal });
     state.debateHistory += `Bull (round 1):\n${bullArg}\n\n`;
     emit({ type: "debate_turn", phase: "invest", round: 1, side: "bull", text: bullArg });
   } catch (e) {
-    err(emit, "bull", e);
+    if (!signal?.aborted) err(emit, "bull", e);
   }
 
   let bearArg = "";
-  try {
+  if (!signal?.aborted) try {
     const msgs: ChatMessage[] = [
       { role: "system", content: BEAR_SYSTEM },
       {
@@ -162,14 +167,14 @@ export async function runFlashAnalysis(
           "Rebut the bull case directly or open with your strongest case.",
       },
     ];
-    bearArg = await invokeWithRetry(msgs, { maxTokens: 300, timeoutMs: 12000 });
+    bearArg = await invokeWithRetry(msgs, { maxTokens: 300, timeoutMs: 12000, signal });
     state.debateHistory += `Bear (round 1):\n${bearArg}\n\n`;
     emit({ type: "debate_turn", phase: "invest", round: 1, side: "bear", text: bearArg });
   } catch (e) {
-    err(emit, "bear", e);
+    if (!signal?.aborted) err(emit, "bear", e);
   }
 
-  try {
+  if (!signal?.aborted) try {
     const msgs: ChatMessage[] = [
       { role: "system", content: DECIDER_SYSTEM },
       {
@@ -181,10 +186,10 @@ export async function runFlashAnalysis(
           DECIDER_STRUCTURE,
       },
     ];
-    state.finalDecision = await invokeWithRetry(msgs, { maxTokens: 800, timeoutMs: 15000 });
+    state.finalDecision = await invokeWithRetry(msgs, { maxTokens: 800, timeoutMs: 15000, signal });
     emit({ type: "decision", markdown: state.finalDecision });
   } catch (e) {
-    err(emit, "portfolio_manager", e);
+    if (!signal?.aborted) err(emit, "portfolio_manager", e);
   }
 
   return state;
