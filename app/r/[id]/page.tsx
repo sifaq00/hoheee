@@ -144,7 +144,10 @@ export default async function ReportPage({
           signals unreliable. This system can be wrong: output is automated
           research, not financial advice.
         </p>
-          <p className="mt-2">Research background: arXiv 2412.20138.</p>
+          <p className="mt-2">
+            Research background: &ldquo;TradingAgents: Multi-Agents LLM
+            Financial Trading Framework&rdquo; (arXiv 2412.20138).
+          </p>
       </footer>
     </div>
   );
