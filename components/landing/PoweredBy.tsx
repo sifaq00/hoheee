@@ -1,11 +1,11 @@
 import Reveal from "./Reveal";
 
 const SOURCES = [
-  { name: "DexScreener", role: "Market data" },
-  { name: "RugCheck", role: "Risk flags" },
-  { name: "CoinGecko", role: "Metadata" },
-  { name: "Supabase", role: "Storage" },
-  { name: "Mimo", role: "Inference" },
+  { name: "DexScreener", role: "Market data", logo: "/sources/dexscreener.png" },
+  { name: "RugCheck", role: "Risk flags", logo: "/sources/rugcheck.png" },
+  { name: "CoinGecko", role: "Metadata", logo: "/sources/coingecko.png" },
+  { name: "Supabase", role: "Storage", logo: "/sources/supabase.svg" },
+  { name: "Mimo", role: "Inference", logo: null },
 ];
 
 export default function PoweredBy() {
@@ -19,9 +19,19 @@ export default function PoweredBy() {
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-x-10 gap-y-4">
               {SOURCES.map((s) => (
-                <div key={s.name} className="flex flex-col gap-1 opacity-70 transition-opacity duration-200 hover:opacity-100">
-                  <span className="font-display text-base font-bold tracking-tight text-black">{s.name}</span>
-                  <span className="font-mono text-[9px] font-semibold tracking-[0.18em] text-zinc-500 uppercase">{s.role}</span>
+                <div key={s.name} className="flex items-center gap-3 opacity-70 transition-opacity duration-200 hover:opacity-100">
+                  {s.logo ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- static local asset
+                    <img src={s.logo} alt={`${s.name} logo`} width={30} height={30} className="h-[30px] w-[30px] rounded-md object-contain" />
+                  ) : (
+                    <span aria-hidden="true" className="flex h-[30px] w-[30px] items-center justify-center rounded-md bg-black font-mono text-xs font-bold text-[#22c55e]">
+                      Mi
+                    </span>
+                  )}
+                  <span>
+                    <span className="font-display block text-base font-bold tracking-tight text-black">{s.name}</span>
+                    <span className="font-mono text-[9px] font-semibold tracking-[0.18em] text-zinc-500 uppercase">{s.role}</span>
+                  </span>
                 </div>
               ))}
             </div>
