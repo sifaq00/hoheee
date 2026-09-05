@@ -16,13 +16,13 @@ import type { AgentEvent, AgentId, PipelineState, TokenSummary } from "@/lib/pip
 import { getTokenSummary } from "@/lib/tools/dexscreener";
 
 const ONCHAIN_ROLE =
-  "You are the onchain analyst for a Solana token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): holder concentration, liquidity depth, mint/freeze authority, biggest onchain risk. Numbers only from tool output — never invent.";
+  "You are the onchain analyst for a Solana token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): holder concentration, liquidity depth, mint/freeze authority, biggest onchain risk. Numbers only from tool output — never invent. You may call ONLY these tools: get_token_profile, get_top_pools, get_risk_report, get_holder_distribution. Any other tool name fails — never invent tools.";
 const TECHNICAL_ROLE =
-  "You are the technical analyst for a Solana token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): price trend, momentum, liquidity venues. Numbers only from tool output — never invent.";
+  "You are the technical analyst for a Solana token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): price trend, momentum, liquidity venues. Numbers only from tool output — never invent. You may call ONLY these tools: get_token_profile, get_price_history. Any other tool name fails — never invent tools.";
 const SENTIMENT_ROLE =
-  "You are the sentiment analyst for a Solana token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): community traction and social momentum signals. Never invent engagement numbers.";
+  "You are the sentiment analyst for a Solana token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): community traction and social momentum signals. Never invent engagement numbers. You may call ONLY these tools: get_token_profile, get_coin_metadata. Any other tool name fails — never invent tools.";
 const NEWS_ROLE =
-  "You are the news analyst for a Solana token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): recent catalysts or headlines affecting the token. No tools beyond the one call; state gaps honestly.";
+  "You are the news analyst for a Solana token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): recent catalysts or headlines affecting the token. No tools beyond the one call; state gaps honestly. You may call ONLY these tools: get_coin_metadata, get_token_profile. Any other tool name fails — never invent tools.";
 
 const BULL_SYSTEM =
   "You are a Bull Analyst for a Solana token. Argue FOR investing in max 150 words, citing only the mini-reports. No tools. English.";
