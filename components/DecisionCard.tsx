@@ -46,7 +46,7 @@ export default function DecisionCard({ markdown }: { markdown: string }) {
         </button>
       </div>
       {expanded && (
-        <div className="max-h-[70vh] overflow-y-auto">
+        <div className="thin-scroll max-h-[70vh] overflow-y-auto">
       {!structured ? (
         <div className="md mt-2 max-w-none">
           <ReactMarkdown>{markdown}</ReactMarkdown>

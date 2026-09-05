@@ -89,7 +89,7 @@ export default function AgentCard({ agent, status, tools, results, report }: Age
       )}
 
       {results.length > 0 && (
-        <ul className="mt-2 flex max-h-20 flex-col gap-1 overflow-y-auto">
+        <ul className="thin-scroll mt-2 flex max-h-20 flex-col gap-1 overflow-y-auto">
           {results.map((r, i) => (
             <li
               key={i}
@@ -109,7 +109,7 @@ export default function AgentCard({ agent, status, tools, results, report }: Age
       )}
 
       {report !== null && (
-        <div ref={bodyRef} data-testid={`agent-report-${agent}`} className="md mt-3 min-h-0 flex-1 overflow-y-auto max-w-none">
+        <div ref={bodyRef} data-testid={`agent-report-${agent}`} className="md thin-scroll mt-3 min-h-0 flex-1 overflow-y-auto max-w-none">
           {done ? (
             <ReactMarkdown>{report}</ReactMarkdown>
           ) : (

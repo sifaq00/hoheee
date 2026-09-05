@@ -1,4 +1,4 @@
-import { MINT_REGEX } from "@/lib/pipeline/orchestrator";
+import { MINT_REGEX } from "@/lib/layered/validate";
 import { getTokenSummary } from "@/lib/tools/dexscreener";
 
 export const dynamic = "force-dynamic";

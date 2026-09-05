@@ -1,7 +1,7 @@
 import { fmtNum as num } from "../format";
 
 const BASE = "https://api.coingecko.com/api/v3";
-const UA = "hoheee-research/0.1";
+const UA = "aries-research/0.1";
 
 interface CoinMeta {
   id?: string;

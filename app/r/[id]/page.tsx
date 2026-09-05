@@ -6,9 +6,10 @@ import AgentCard from "@/components/AgentCard";
 import DebateCard from "@/components/DebateCard";
 import DecisionCard from "@/components/DecisionCard";
 import { parseDecision } from "@/lib/decision";
+import { bumpViews, loadReport } from "@/lib/layered/supabase";
 import CopyThreadButton from "@/components/CopyThreadButton";
 
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 interface RunFile {
   token: {
@@ -20,6 +21,7 @@ interface RunFile {
   };
   reports: Record<string, string>;
   debate: { phase: string; round: number; side: string; text: string }[];
+  risks?: Record<string, string>;
   managerPlan: string;
   decision: string;
 }
@@ -55,7 +57,19 @@ export default async function ReportPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const run = loadRun(id);
+  const dbRow = await loadReport(id);
+  if (dbRow) await bumpViews(id);
+  const views = dbRow?.views != null ? dbRow.views + 1 : null;
+  const run = dbRow
+    ? {
+        token: { name: dbRow.token.name, symbol: dbRow.token.symbol, price: dbRow.token.price, liquidity: dbRow.token.liquidity, change24h: dbRow.token.change24h },
+        reports: dbRow.reports,
+        debate: dbRow.debate,
+        risks: dbRow.risks,
+        managerPlan: "",
+        decision: dbRow.decision,
+      }
+    : loadRun(id);
   if (!run) notFound();
   const parsed = parseDecision(run.decision);
 
@@ -63,12 +77,15 @@ export default async function ReportPage({
     <div className="min-h-full flex flex-col items-center px-4 py-10">
       <main className="w-full max-w-2xl flex flex-col gap-6">
         <header className="flex flex-col gap-2 border-b border-zinc-800 pb-4">
-          <h1 className="text-xl font-bold tracking-tight">
-            Hoheee <span className="text-[#22c55e]">—</span> Solana Token
+          <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight">
+            {/* eslint-disable-next-line @next/next/no-img-element -- static local webp, no optimizer needed */}
+            <img src="/logo.webp" alt="Aries logo" width={28} height={28} className="rounded" />
+            Aries <span className="text-[#22c55e]">—</span> Solana Token
             Research
           </h1>
           <p className="text-sm text-zinc-400">
-            Research tool, not financial advice. Analysis takes under a minute.
+            Research tool, not financial advice. Analysis takes a few minutes.
+            {views != null && <> · {views} {views === 1 ? "read" : "reads"}</>}
           </p>
         </header>
 
@@ -105,16 +122,18 @@ export default async function ReportPage({
           ))}
         </section>
 
-        <section className="flex flex-col gap-4">
-          <h2 className="text-base font-semibold">Trader proposal</h2>
-          <AgentCard
-            agent="trader"
-            status="done"
-            tools={[]}
-            results={[]}
-            report={run.reports["trader"] ?? null}
-          />
-        </section>
+        {run.reports["trader"] ? (
+          <section className="flex flex-col gap-4">
+            <h2 className="text-base font-semibold">Trader proposal</h2>
+            <AgentCard
+              agent="trader"
+              status="done"
+              tools={[]}
+              results={[]}
+              report={run.reports["trader"] ?? null}
+            />
+          </section>
+        ) : null}
 
         <section className="flex flex-col gap-4">
           <h2 className="text-base font-semibold">Debate</h2>
@@ -127,14 +146,32 @@ export default async function ReportPage({
               text={d.text}
             />
           ))}
-          <AgentCard
-            agent="Research Manager"
-            status="done"
-            tools={[]}
-            results={[]}
-            report={run.managerPlan}
-          />
+          {run.managerPlan ? (
+            <AgentCard
+              agent="Research Manager"
+              status="done"
+              tools={[]}
+              results={[]}
+              report={run.managerPlan}
+            />
+          ) : null}
         </section>
+
+        {run.risks ? (
+          <section className="flex flex-col gap-4">
+            <h2 className="text-base font-semibold">Risk review</h2>
+            {["liquidity", "rugpath", "concentration"].map((slot) => (
+              <AgentCard
+                key={slot}
+                agent={`risk:${slot}`}
+                status="done"
+                tools={[]}
+                results={[]}
+                report={run.risks?.[slot] ?? null}
+              />
+            ))}
+          </section>
+        ) : null}
       </main>
       <footer className="mt-6 w-full max-w-2xl border-t border-zinc-800 pt-4 text-xs leading-relaxed text-zinc-500">
         <p>

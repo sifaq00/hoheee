@@ -53,5 +53,12 @@ export async function streamSSE(
     if (signal?.aborted) break;
   }
   const tail = buf.trim();
-  if (tail.startsWith("data:")) dispatch(tail.slice(5).trim());
+  if (tail) {
+    let data = "";
+    for (const line of tail.split("\n")) {
+      if (line.startsWith("event:")) eventType = line.slice(6).trim();
+      else if (line.startsWith("data:")) data += (data ? "\n" : "") + line.slice(5).trim();
+    }
+    dispatch(data);
+  }
 }
