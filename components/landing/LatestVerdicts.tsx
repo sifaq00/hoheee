@@ -27,7 +27,6 @@ async function getLatest(): Promise<LatestVerdict[]> {
 
 export default async function LatestVerdicts() {
   const items = await getLatest();
-  if (items.length === 0) return null;
   return (
     <section className="border-t border-black/[0.07]" aria-labelledby="latest-title">
       <div className="mx-auto max-w-6xl px-4 py-14 md:py-20">
@@ -42,6 +41,17 @@ export default async function LatestVerdicts() {
             Run yours <span className="text-[#15803d]">→</span>
           </Link>
         </Reveal>
+        {items.length === 0 ? (
+          <Reveal>
+            <Link
+              href="/analyze"
+              className="mt-8 block cursor-pointer rounded-md border border-dashed border-black/20 bg-[#f5f6f7] p-8 text-center transition-colors hover:border-[#16a34a]"
+            >
+              <p className="font-mono text-sm font-bold text-black">No verdicts yet — mint the first one</p>
+              <p className="mt-1 font-mono text-xs text-zinc-500">Connect wallet, paste a mint, ~2 minutes</p>
+            </Link>
+          </Reveal>
+        ) : (
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {items.map((v, i) => (
             <Reveal key={v.id} delay={i * 90} className="h-full">
@@ -56,6 +66,7 @@ export default async function LatestVerdicts() {
             </Reveal>
           ))}
         </div>
+        )}
       </div>
     </section>
   );
