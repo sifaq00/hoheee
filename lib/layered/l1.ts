@@ -14,7 +14,7 @@ const ROLES = {
   news: "You are the news analyst for a Solana token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): recent catalysts or headlines affecting the token. State gaps honestly.",
 } as const;
 
-const GUARD = " Output findings only: never emit <tool_call> blocks, planning notes, or meta-commentary about your next steps.";
+const GUARD = " Output findings only: never emit <tool_call> blocks, planning notes, or meta-commentary about your next steps. Never use markdown tables (narrow cards break them); use short plain lines or bullets instead.";
 
 type Slot = keyof typeof ROLES;
 

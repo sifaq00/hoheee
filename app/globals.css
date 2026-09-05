@@ -183,10 +183,12 @@ body {
   padding: 0;
 }
 .md table {
+  display: block;
   width: 100%;
   border-collapse: collapse;
   margin: 0.5em 0;
   font-size: 0.8125rem;
+  overflow-x: auto;
 }
 .md th,
 .md td {
