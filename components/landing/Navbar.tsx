@@ -25,6 +25,9 @@ export default function Navbar() {
             <span className="font-display text-sm font-bold tracking-[0.18em] text-black">ARIES</span>
           </Link>
           <div className="hidden items-center gap-7 justify-self-center lg:flex">
+            <Link href="/" className="font-mono text-[13px] font-medium text-zinc-600 transition-colors hover:text-[#16a34a]">
+              Home
+            </Link>
             {LINKS.map((l) => (
               <a key={l.href} href={l.href} className="font-mono text-[13px] font-medium text-zinc-600 transition-colors hover:text-[#16a34a]">
                 {l.label}
@@ -32,7 +35,7 @@ export default function Navbar() {
             ))}
           </div>
           <div className="flex items-center gap-2 justify-self-end">
-            <span className="hidden md:block">
+            <span className="hidden sm:block">
               <WalletButton />
             </span>
             <Link
@@ -57,6 +60,12 @@ export default function Navbar() {
       {open && (
         <div className="fixed inset-x-0 top-16 bottom-0 z-40 overflow-y-auto bg-white px-5 pt-2 pb-10 lg:hidden" role="dialog" aria-label="Menu">
           <ul className="flex flex-col">
+            <li className="border-b border-black/[0.07]">
+              <Link href="/" onClick={() => setOpen(false)} className="flex cursor-pointer items-center justify-between py-4 font-mono text-base font-medium text-black">
+                Home
+                <span aria-hidden="true" className="text-zinc-400">→</span>
+              </Link>
+            </li>
             {LINKS.map((l) => (
               <li key={l.href} className="border-b border-black/[0.07]">
                 <a href={l.href} onClick={() => setOpen(false)} className="flex cursor-pointer items-center justify-between py-4 font-mono text-base font-medium text-black">

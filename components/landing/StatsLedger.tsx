@@ -6,7 +6,7 @@ const STATS = [
   { v: "4+3+1", k: "Agents per run" },
   { v: "~99s", k: "Median full run" },
   { v: "2", k: "Debate rounds" },
-  { v: "24/7", k: "Desk never sleeps" },
+  { v: "10/hr", k: "Demo IP throttle" },
 ];
 
 const FEED = [

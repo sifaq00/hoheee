@@ -41,7 +41,7 @@ export default function AnnounceBar() {
       <a href="/analyze" className="flex min-w-0 cursor-pointer items-center gap-2 font-mono text-xs font-bold">
         <span className="hidden rounded bg-black px-1.5 py-0.5 text-[9px] tracking-[0.12em] text-[#22c55e] uppercase sm:inline">Live</span>
         <span className="truncate">
-          Full run lands in <b>~2 minutes</b> — no wallet needed
+          Connect wallet · full run lands in <b>~2 minutes</b>
         </span>
         <span aria-hidden="true">→</span>
       </a>
