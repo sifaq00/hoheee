@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "vitest run tests/tools.test.ts tests/llm.test.ts tests/llm-compat.test.ts tests/sse.test.ts tests/l1.test.ts tests/l2.test.ts tests/l3.test.ts tests/layered-store.test.ts tests/layered-reducer.test.ts tests/l1-route.test.ts tests/layered-sse.test.ts tests/wallet-history.test.ts tests/layered-chain.test.ts tests/chains.test.ts tests/chain-fetchers.test.ts"
+    "test": "vitest run tests/tools.test.ts tests/llm.test.ts tests/llm-compat.test.ts tests/sse.test.ts tests/l1.test.ts tests/l2.test.ts tests/l3.test.ts tests/layered-store.test.ts tests/layered-reducer.test.ts tests/l1-route.test.ts tests/layered-sse.test.ts tests/wallet-history.test.ts tests/layered-chain.test.ts tests/chains.test.ts tests/chain-fetchers.test.ts tests/mempool.test.ts"
   },
   "dependencies": {
     "next": "16.3.4",

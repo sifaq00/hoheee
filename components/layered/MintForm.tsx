@@ -168,7 +168,7 @@ export default function MintForm({
             type="text"
             spellCheck={false}
             autoComplete="off"
-            placeholder={chain === "solana" ? "paste solana mint, press enter" : "paste 0x contract, press enter"}
+            placeholder={chain === "solana" ? "paste solana mint, press enter" : chain === "bitcoin" ? "type BTC, press enter" : "paste 0x contract, press enter"}
             value={mint}
             disabled={disabled}
             onChange={(e) => {
@@ -187,7 +187,11 @@ export default function MintForm({
         </div>
         {showValidationError && (
           <p role="alert" className="text-sm text-[#ef4444]">
-            {chain === "solana" ? "Invalid mint address: expected 32-44 base58 characters." : "Invalid contract address: expected 0x plus 40 hex characters."}
+            {chain === "solana"
+              ? "Invalid mint address: expected 32-44 base58 characters."
+              : chain === "bitcoin"
+                ? "Type BTC for native Bitcoin."
+                : "Invalid contract address: expected 0x plus 40 hex characters."}
           </p>
         )}
         {previewStatus === "loading" && <p className="font-mono text-xs text-zinc-400">resolving preview…</p>}

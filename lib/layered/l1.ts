@@ -10,10 +10,10 @@ import { mintChain } from "./chain";
 import type { L1Result } from "./types";
 
 const ROLES = {
-  onchain: "You are the onchain analyst for a Solana token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): holder concentration, liquidity depth, mint/freeze authority, biggest onchain risk. Numbers only from tool output — never invent.",
-  technical: "You are the technical analyst for a Solana token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): price trend, momentum, liquidity venues. Numbers only from tool output — never invent.",
-  sentiment: "You are the sentiment analyst for a Solana token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): community traction and social momentum signals. Never invent engagement numbers.",
-  news: "You are the news analyst for a Solana token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): recent catalysts or headlines affecting the token. State gaps honestly.",
+  onchain: "You are the onchain analyst for a crypto token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): holder concentration, liquidity depth, authority/ownership risk, biggest onchain risk. Numbers only from tool output — never invent.",
+  technical: "You are the technical analyst for a crypto token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): price trend, momentum, liquidity venues. Numbers only from tool output — never invent.",
+  sentiment: "You are the sentiment analyst for a crypto token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): community traction and social momentum signals. Never invent engagement numbers.",
+  news: "You are the news analyst for a crypto token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): recent catalysts or headlines affecting the token. State gaps honestly.",
 } as const;
 
 const GUARD = " Output findings only: never emit <tool_call> blocks, planning notes, or meta-commentary about your next steps. Never use markdown tables (narrow cards break them); use short plain lines or bullets instead.";
@@ -35,9 +35,15 @@ export async function runL1(chain: ChainId, mint: string, opts: { signal?: Abort
   const settled = await Promise.allSettled(
     slots.map(async (agent, i) => {
       // Stagger launches: 4 analysts hammering the model + CoinGecko at the
-      // same millisecond is how rate limits happen.
+      // same millisecond is how rate limits happen. Abort-aware sleep.
       if (i > 0 && !opts.signal?.aborted) {
-        await new Promise((r) => setTimeout(r, i * 1500));
+        await new Promise((r) => {
+          const t = setTimeout(r, i * 1500);
+          opts.signal?.addEventListener("abort", () => {
+            clearTimeout(t);
+            r(null);
+          }, { once: true });
+        });
       }
       // Three analyst-level attempts: transient LLM/tool hiccups are common,
       // MISSING is the last resort, not the first.
