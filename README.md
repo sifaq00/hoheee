@@ -46,6 +46,17 @@ create table reports (
 );
 alter table reports enable row level security;
 create policy "public read" on reports for select using (true);
+
+create table events (
+  id uuid primary key default gen_random_uuid(),
+  wallet text not null,
+  type text not null,
+  report_id uuid,
+  created_at timestamptz not null default now()
+);
+create index events_wallet_idx on events (wallet, created_at desc);
+alter table events enable row level security;
+-- no policies: service key only, analytics stay private
 ```
 
 Then start the dev server:

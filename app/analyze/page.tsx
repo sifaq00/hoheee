@@ -66,7 +66,7 @@ function Timeline({ step, note }: { step: LayeredState["step"]; note: string | n
 
 export default function Analyze() {
   const { state, start, retry, reset } = useLayeredAnalysis();
-  const { connected, address } = useWallet();
+  const { connected, address, setIsModalOpen } = useWallet();
   const running = state.step === "l1" || state.step === "l2" || state.step === "l3" || state.step === "l4";
   const showFeed = running || state.step === "done" || state.step === "error";
   const done = state.step === "done" && state.decision && state.shareId;
@@ -96,7 +96,21 @@ export default function Analyze() {
           {!showFeed && (
             <>
               <SectionPanel index="//" title="Target lock" meta="solana mainnet">
-                <MintForm disabled={false} onStart={(mint) => start(mint, connected ? address : undefined)} />
+                {!connected && (
+                  <p className="mb-3 rounded border border-[#22c55e]/40 bg-[#22c55e]/5 px-3 py-2 font-mono text-xs text-zinc-300">
+                    Connect your Solana wallet to run analysis — reports save to your wallet history.
+                  </p>
+                )}
+                <MintForm
+                  disabled={false}
+                  onStart={(mint) => {
+                    if (!connected) {
+                      setIsModalOpen(true);
+                      return;
+                    }
+                    start(mint, address);
+                  }}
+                />
               </SectionPanel>
               {connected && (
                 <SectionPanel index="◈" title="Your reports" meta="this wallet">

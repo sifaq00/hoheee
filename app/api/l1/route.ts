@@ -1,4 +1,5 @@
 import { runL1 } from "@/lib/layered/l1";
+import { logEvent } from "@/lib/layered/supabase";
 import { emitResult, sseResponse } from "@/lib/layered/sse";
 import { MINT_REGEX } from "@/lib/layered/validate";
 
@@ -27,8 +28,11 @@ async function rateLimited(req: Request): Promise<boolean> {
 
 export async function POST(req: Request) {
   let mint: unknown;
+  let wallet: unknown;
   try {
-    mint = (await req.json()).mint;
+    const body = await req.json();
+    mint = body.mint;
+    wallet = body.wallet;
   } catch {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
@@ -38,6 +42,7 @@ export async function POST(req: Request) {
   if (await rateLimited(req)) {
     return Response.json({ error: "Demo limit: 10 runs per hour per IP" }, { status: 429 });
   }
+  void logEvent("run_started", wallet);
   return sseResponse((emit) =>
     emitResult(emit, () => runL1(mint, { signal: req.signal, emit: (e) => emit({ ...e }) }))
   );

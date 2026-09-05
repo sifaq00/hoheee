@@ -3,7 +3,7 @@ import { parseDecision } from "@/lib/decision";
 import type { ChatMessage } from "@/lib/llm";
 import { MINT_REGEX } from "@/lib/layered/validate";
 import { verifyChain } from "./chain";
-import { saveReport } from "./supabase";
+import { logEvent, saveReport } from "./supabase";
 import type { DebateTurn, L1Result, L3Result, L4Result } from "./types";
 
 const DECIDER_SYSTEM = "You are the Portfolio Manager. Decide fast from mini-reports, one debate, and the risk review. No tools. English.";
@@ -75,6 +75,7 @@ export async function runL4(
     rating: parsed.rating,
     confidence: parsed.confidence,
   });
+  await logEvent("run_completed", input.wallet, id);
   return { decision, rating: parsed.rating, confidence: parsed.confidence, id };
 }
 

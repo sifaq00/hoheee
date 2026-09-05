@@ -78,7 +78,7 @@ export function useLayeredAnalysis() {
     let { token, symbol, reports, debate, risks, chain } = seed;
     if (from === "l1") {
       let done = 0;
-      const l1 = (await streamLayer("/api/l1", { mint }, signal, (type, d) => {
+      const l1 = (await streamLayer("/api/l1", { mint, wallet: seed.wallet ?? null }, signal, (type, d) => {
         if (type === "agent_report" && typeof d.agent === "string" && typeof d.report === "string") {
           done += 1;
           dispatch({ type: "NOTE", note: `L1 analysts ${done}/4 — ${d.agent} done` });

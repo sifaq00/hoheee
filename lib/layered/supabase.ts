@@ -98,3 +98,57 @@ export async function bumpViews(id: string): Promise<void> {
     // analytics best-effort: ignore
   }
 }
+
+export type AnalyticsType = "run_started" | "run_completed";
+
+function validWallet(wallet: unknown): wallet is string {
+  return (
+    typeof wallet === "string" &&
+    (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(wallet) || /^0x[0-9a-fA-F]{40}$/.test(wallet))
+  );
+}
+
+// Best-effort analytics. Never throws, never blocks a run.
+export async function logEvent(
+  type: AnalyticsType,
+  wallet: unknown,
+  reportId?: string,
+  deps: { url?: string; serviceKey?: string; fetchFn?: typeof fetch } = {}
+): Promise<void> {
+  try {
+    if (!validWallet(wallet)) return;
+    const url = deps.url ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = deps.serviceKey ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !serviceKey) return;
+    await (deps.fetchFn ?? fetch)(`${url}/rest/v1/events`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+      body: JSON.stringify({ wallet, type, report_id: reportId ?? null }),
+    });
+  } catch {
+    // ignore
+  }
+}
+
+export async function walletStats(
+  wallet: string,
+  deps: { url?: string; serviceKey?: string; fetchFn?: typeof fetch } = {}
+): Promise<{ runs: number; lastRun: string | null }> {
+  const fallback = { runs: 0, lastRun: null as string | null };
+  try {
+    if (!validWallet(wallet)) return fallback;
+    const url = deps.url ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = deps.serviceKey ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !serviceKey) return fallback;
+    const fetchFn = deps.fetchFn ?? fetch;
+    const res = await fetchFn(
+      `${url}/rest/v1/events?wallet=eq.${encodeURIComponent(wallet)}&type=eq.run_completed&select=created_at&order=created_at.desc&limit=100`,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+    );
+    if (!res.ok) return fallback;
+    const data = (await res.json()) as { created_at?: string }[];
+    return { runs: data.length, lastRun: data[0]?.created_at ?? null };
+  } catch {
+    return fallback;
+  }
+}
