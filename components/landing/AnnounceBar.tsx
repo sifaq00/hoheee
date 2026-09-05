@@ -4,20 +4,28 @@ import { useEffect, useState } from "react";
 
 const KEY = "aries-announce";
 
+export const ANNOUNCE_EVENT = "aries:announce";
+
+function isDismissed(): boolean {
+  try {
+    return sessionStorage.getItem(KEY) === "closed";
+  } catch {
+    return false;
+  }
+}
+
 export default function AnnounceBar() {
   const [closed, setClosed] = useState(true);
   const [ready, setReady] = useState(false);
 
-  // Read persisted dismissal only after mount: server has no localStorage,
+  // Read persisted dismissal only after mount: server has no sessionStorage,
   // and rendering open on first client paint would mismatch SSR HTML.
-  /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration from localStorage */
+  /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration from sessionStorage */
   useEffect(() => {
-    try {
-      if (localStorage.getItem(KEY) !== "closed") setClosed(false);
-    } catch {
-      setClosed(false);
-    }
+    const shut = isDismissed();
+    setClosed(shut);
     setReady(true);
+    window.dispatchEvent(new CustomEvent(ANNOUNCE_EVENT, { detail: { open: !shut } }));
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -26,10 +34,11 @@ export default function AnnounceBar() {
   const dismiss = () => {
     setClosed(true);
     try {
-      localStorage.setItem(KEY, "closed");
+      sessionStorage.setItem(KEY, "closed");
     } catch {
       // ignore
     }
+    window.dispatchEvent(new CustomEvent(ANNOUNCE_EVENT, { detail: { open: false } }));
   };
 
   return (

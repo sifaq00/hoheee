@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import WalletButton from "@/components/WalletButton";
+import { ANNOUNCE_EVENT } from "./AnnounceBar";
 
 const LINKS = [
   { href: "#how", label: "How it works" },
@@ -14,10 +15,17 @@ const LINKS = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [announceOpen, setAnnounceOpen] = useState(true);
+
+  useEffect(() => {
+    const h = (e: Event) => setAnnounceOpen((e as CustomEvent<{ open: boolean }>).detail.open);
+    window.addEventListener(ANNOUNCE_EVENT, h);
+    return () => window.removeEventListener(ANNOUNCE_EVENT, h);
+  }, []);
 
   return (
     <>
-      <header className="sticky top-10 z-50 border-b border-black/10 bg-white/90 backdrop-blur-md">
+      <header className={`sticky ${announceOpen ? "top-10" : "top-0"} z-50 border-b border-black/10 bg-white/90 backdrop-blur-md transition-[top] duration-300`}>
         <nav aria-label="Primary" className="mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-4">
           <Link href="/" className="flex cursor-pointer items-center gap-2 justify-self-start">
             {/* eslint-disable-next-line @next/next/no-img-element -- static local webp */}
@@ -55,7 +63,7 @@ export default function Navbar() {
       </header>
 
       {open && (
-        <div className="fixed inset-x-0 top-[104px] bottom-0 z-40 overflow-y-auto bg-white px-5 pt-2 pb-10 lg:hidden" role="dialog" aria-label="Menu">
+        <div className={`fixed inset-x-0 ${announceOpen ? "top-[104px]" : "top-16"} bottom-0 z-40 overflow-y-auto bg-white px-5 pt-2 pb-10 lg:hidden`} role="dialog" aria-label="Menu">
           <ul className="flex flex-col">
             {LINKS.map((l) => (
               <li key={l.href} className="border-b border-black/[0.07]">
