@@ -45,6 +45,7 @@ export interface AgentFeedState {
   status: "running" | "done";
   reasoning: string;
   tools: ToolBadge[];
+  results: { tool: string; summary: string }[];
   report: string | null;
 }
 
@@ -100,7 +101,7 @@ export function useAnalysis() {
     setAgents((prev) =>
       prev[key]
         ? prev
-        : { ...prev, [key]: { agent: key, status: "running", reasoning: "", tools: [], report: null } }
+        : { ...prev, [key]: { agent: key, status: "running", reasoning: "", tools: [], results: [], report: null } }
     );
   }, []);
 
@@ -180,8 +181,25 @@ export function useAnalysis() {
             }));
             break;
           }
-          case "tool_result":
+          case "tool_result": {
+            const r = e as Extract<AgentEvent, { type: "tool_result" }>;
+            const key = String(r.agent ?? "unknown");
+            ensureAgent(key);
+            const summary = String(r.summary ?? "").slice(0, 140);
+            setAgents((prev) => ({
+              ...prev,
+              [key]: {
+                ...prev[key],
+                agent: key,
+                status: prev[key]?.status ?? "running",
+                reasoning: prev[key]?.reasoning ?? "",
+                tools: prev[key]?.tools ?? [],
+                results: [...(prev[key]?.results ?? []), { tool: r.tool, summary }],
+                report: prev[key]?.report ?? null,
+              },
+            }));
             break;
+          }
         case "agent_report": {
           const r = e as Extract<AgentEvent, { type: "agent_report" }>;
           const key = String(r.agent ?? "unknown");
@@ -550,8 +568,8 @@ export default function Home() {
                             <AgentCard
                               agent={a.agent}
                               status={a.status}
-                              reasoning={a.reasoning}
                               tools={a.tools}
+                              results={a.results}
                               report={a.report}
                             />
                           </div>

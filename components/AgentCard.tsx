@@ -11,8 +11,8 @@ export interface ToolBadge {
 interface AgentCardProps {
   agent: string;
   status: "running" | "done";
-  reasoning: string;
   tools: ToolBadge[];
+  results: { tool: string; summary: string }[];
   report: string | null;
 }
 
@@ -22,7 +22,7 @@ interface AgentCardProps {
 const TYPEWRITE_STEP = 12;
 const TYPEWRITE_MS = 16;
 
-export default function AgentCard({ agent, status, tools, report }: AgentCardProps) {
+export default function AgentCard({ agent, status, tools, results, report }: AgentCardProps) {
   // Typewriter reveal: reset the counter during render when a new report
   // arrives (sanctioned render-phase adjustment, no setState-in-effect).
   const [typed, setTyped] = useState(0);
@@ -73,14 +73,26 @@ export default function AgentCard({ agent, status, tools, report }: AgentCardPro
           {tools.map((t, i) => (
             <span
               key={i}
-              title={t.args}
               className="rounded border border-zinc-700 px-1.5 py-0.5 font-mono text-xs text-zinc-300"
             >
               {t.tool}
-              {t.args ? ` ${t.args.slice(0, 40)}` : ""}
             </span>
           ))}
         </div>
+      )}
+
+      {results.length > 0 && (
+        <ul className="mt-2 flex flex-col gap-1">
+          {results.map((r, i) => (
+            <li
+              key={i}
+              title={r.summary}
+              className="truncate font-mono text-xs text-zinc-500"
+            >
+              <span className="text-[#22c55e]">✓</span> {r.tool} → {r.summary}
+            </li>
+          ))}
+        </ul>
       )}
 
       {status === "running" && report === null && (

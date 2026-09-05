@@ -98,8 +98,8 @@ export default async function ReportPage({
               key={agent}
               agent={agent}
               status="done"
-              reasoning=""
               tools={[]}
+              results={[]}
               report={run.reports[agent] ?? null}
             />
           ))}
@@ -110,8 +110,8 @@ export default async function ReportPage({
           <AgentCard
             agent="trader"
             status="done"
-            reasoning=""
             tools={[]}
+            results={[]}
             report={run.reports["trader"] ?? null}
           />
         </section>
@@ -130,8 +130,8 @@ export default async function ReportPage({
           <AgentCard
             agent="Research Manager"
             status="done"
-            reasoning=""
             tools={[]}
+            results={[]}
             report={run.managerPlan}
           />
         </section>
