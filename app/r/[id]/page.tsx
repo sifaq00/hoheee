@@ -117,7 +117,7 @@ export default async function ReportPage({
           </div>
         </header>
 
-        <main className="mx-auto mt-6 flex w-full max-w-3xl flex-col gap-4">
+        <main className="mx-auto mt-6 flex w-full flex-col gap-4">
           <section aria-label="Verdict" className={`overflow-hidden rounded border bg-black ${ratingTone(parsed.rating)}`}>
             <div className="flex flex-col items-center gap-1 px-6 py-8 text-center">
               <p className="font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
@@ -207,7 +207,7 @@ export default async function ReportPage({
           ) : null}
         </main>
 
-        <footer className="mx-auto mt-8 w-full max-w-3xl border-t border-white/10 pt-4 font-mono text-[11px] leading-relaxed text-zinc-500">
+        <footer className="mx-auto mt-8 w-full border-t border-white/10 pt-4 font-mono text-[11px] leading-relaxed text-zinc-500">
           <p>
             Automated research, not financial advice. Thin data on new tokens makes signals unreliable.
             Background: &ldquo;TradingAgents: Multi-Agents LLM Financial Trading Framework&rdquo; (arXiv 2412.20138).
