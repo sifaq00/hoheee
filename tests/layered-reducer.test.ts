@@ -50,6 +50,15 @@ describe("layeredReducer", () => {
     expect(s.debate).toHaveLength(0);
   });
 
+  it("streams live token plus per-analyst reports", () => {
+    let s: LayeredState = { ...initialLayeredState, step: "l1" };
+    s = layeredReducer(s, { type: "L1_TOKEN", token: { name: "B", price: "1", liquidity: 2, change24h: 3 }, symbol: "B" });
+    s = layeredReducer(s, { type: "L1_REPORT", agent: "onchain", report: "o" });
+    expect(s.liveToken?.name).toBe("B");
+    expect(s.liveReports.onchain).toBe("o");
+    expect(s.liveReports.news).toBeUndefined();
+  });
+
   it("stores progress notes and clears them on step advance", () => {
     let s: LayeredState = { ...initialLayeredState, step: "l1" };
     s = layeredReducer(s, { type: "NOTE", note: "L1 analysts 1/4" });

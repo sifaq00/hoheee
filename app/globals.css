@@ -111,6 +111,26 @@ body {
   .land-marquee { width: 100%; flex-wrap: wrap; justify-content: center; }
 }
 
+/* Thin scrollbars for report panes (default bars are chunky). */
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #3f3f46 transparent;
+}
+
+.thin-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 3px;
+}
+
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 /* Base styles for react-markdown output in report/decision cards.
    No typography plugin installed, so this scoped .md class covers it. */
 .md {

@@ -24,7 +24,7 @@ export type AgentId =
   | "orchestrator";
 
 export type AgentEvent =
-  | { type: "token_found"; name: string; price: string; liquidity: number; change24h: number }
+  | { type: "token_found"; name: string; symbol: string; price: string; liquidity: number; change24h: number }
   | { type: "agent_start"; agent: AgentId }
   | { type: "reasoning"; agent: AgentId; text: string }
   | { type: "tool_call"; agent: AgentId; tool: string; args: string }

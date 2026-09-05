@@ -79,11 +79,19 @@ export function useLayeredAnalysis() {
     if (from === "l1") {
       let done = 0;
       const l1 = (await streamLayer("/api/l1", { mint }, signal, (type, d) => {
-        if (type === "agent_report" && typeof d.agent === "string") {
+        if (type === "agent_report" && typeof d.agent === "string" && typeof d.report === "string") {
           done += 1;
           dispatch({ type: "NOTE", note: `L1 analysts ${done}/4 — ${d.agent} done` });
+          if (d.agent === "onchain" || d.agent === "technical" || d.agent === "sentiment" || d.agent === "news") {
+            dispatch({ type: "L1_REPORT", agent: d.agent, report: d.report });
+          }
         } else if (type === "token_found" && typeof d.name === "string") {
           dispatch({ type: "NOTE", note: `Found ${d.name}, scouts running` });
+          dispatch({
+            type: "L1_TOKEN",
+            token: { name: d.name, price: String(d.price ?? "?"), liquidity: Number(d.liquidity) || 0, change24h: Number(d.change24h) || 0 },
+            symbol: typeof d.symbol === "string" ? d.symbol : "",
+          });
         }
       })) as unknown as L1Result;
       token = l1.token;

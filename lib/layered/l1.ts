@@ -27,7 +27,7 @@ export async function runL1(mint: string, opts: { signal?: AbortSignal; emit?: (
     throw new Error("data source unreachable");
   }
   if (!summary) throw new Error(`Token not found: ${mint}`);
-  opts.emit?.({ type: "token_found", name: summary.name, price: summary.priceUsd, liquidity: summary.liquidityUsd, change24h: summary.priceChange24h });
+  opts.emit?.({ type: "token_found", name: summary.name, symbol: summary.symbol, price: summary.priceUsd, liquidity: summary.liquidityUsd, change24h: summary.priceChange24h });
   const slots = Object.keys(ROLES) as Slot[];
   const settled = await Promise.allSettled(
     slots.map(async (agent) => {
@@ -51,10 +51,12 @@ export async function runL1(mint: string, opts: { signal?: AbortSignal; emit?: (
   const reports = {} as L1Result["reports"];
   const errors: L1Result["errors"] = [];
   settled.forEach((r, i) => {
-    if (r.status === "fulfilled") reports[slots[i]] = r.value;
-    else {
+    if (r.status === "fulfilled" && r.value.trim()) {
+      reports[slots[i]] = r.value;
+    } else {
       reports[slots[i]] = MISSING_REPORT;
-      errors.push({ agent: slots[i], message: r.reason instanceof Error ? r.reason.message : String(r.reason) });
+      const msg = r.status === "rejected" ? (r.reason instanceof Error ? r.reason.message : String(r.reason)) : "empty report";
+      errors.push({ agent: slots[i], message: msg });
     }
   });
   return {

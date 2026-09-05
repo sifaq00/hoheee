@@ -16,6 +16,9 @@ export interface LayeredState {
   error: string | null;
   note: string | null;
   chains: { l1?: string; l2?: string; l3?: string };
+  liveToken: L1Result["token"] | null;
+  liveSymbol: string;
+  liveReports: Partial<L1Result["reports"]>;
 }
 
 export const initialLayeredState: LayeredState = {
@@ -32,6 +35,9 @@ export const initialLayeredState: LayeredState = {
   error: null,
   note: null,
   chains: {},
+  liveToken: null,
+  liveSymbol: "",
+  liveReports: {},
 };
 
 export type LayeredAction =
@@ -42,6 +48,8 @@ export type LayeredAction =
   | { type: "L4_OK"; decision: string; shareId: string }
   | { type: "FAIL"; step: NonNullable<LayeredState["failedStep"]>; message: string }
   | { type: "NOTE"; note: string }
+  | { type: "L1_TOKEN"; token: L1Result["token"]; symbol: string }
+  | { type: "L1_REPORT"; agent: keyof L1Result["reports"]; report: string }
   | { type: "L2_TURN"; turn: DebateTurn }
   | { type: "RETRY" }
   | { type: "RESET" };
@@ -63,12 +71,26 @@ export function layeredReducer(s: LayeredState, a: LayeredAction): LayeredState 
       return { ...s, step: "error", failedStep: a.step, error: a.message };
     case "NOTE":
       return { ...s, note: a.note };
+    case "L1_TOKEN":
+      return { ...s, liveToken: a.token, liveSymbol: a.symbol };
+    case "L1_REPORT":
+      return { ...s, liveReports: { ...s.liveReports, [a.agent]: a.report } };
     case "L2_TURN":
       return { ...s, debate: [...s.debate, a.turn] };
     case "RETRY":
       if (!s.failedStep) return s;
-      // Fresh L2 run re-streams turns; drop stale partials.
-      return { ...s, step: s.failedStep, debate: s.failedStep === "l2" ? [] : s.debate, failedStep: null, error: null, note: null };
+      // Fresh L2 run re-streams turns; fresh L1 re-streams reports. Drop stale partials.
+      return {
+        ...s,
+        step: s.failedStep,
+        debate: s.failedStep === "l2" ? [] : s.debate,
+        liveToken: s.failedStep === "l1" ? null : s.liveToken,
+        liveSymbol: s.failedStep === "l1" ? "" : s.liveSymbol,
+        liveReports: s.failedStep === "l1" ? {} : s.liveReports,
+        failedStep: null,
+        error: null,
+        note: null,
+      };
     case "RESET":
       return initialLayeredState;
   }

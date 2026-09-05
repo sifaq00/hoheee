@@ -74,7 +74,7 @@ export default function Analyze() {
   return (
     <div className="min-h-full">
       <div aria-hidden="true" className="land-grid pointer-events-none fixed inset-0" />
-      <div className="relative mx-auto max-w-5xl px-4 py-6">
+      <div className="relative mx-auto w-full px-4 py-6">
         <header className="flex flex-wrap items-center gap-3 border-b border-white/10 pb-4">
           <Link href="/" className="flex cursor-pointer items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element -- static local webp */}
@@ -135,11 +135,15 @@ export default function Analyze() {
 
               <div className="flex min-w-0 flex-col gap-4">
                 {done && <VerdictBanner decision={state.decision!} shareId={state.shareId!} />}
-                {state.token && state.reports && (
-                  <SectionPanel index="L1" title="Scout reports" meta="4/4 parallel">
-                    <AnalystsSection token={state.token} symbol={state.symbol} reports={state.reports} />
+                {(state.token && state.reports) || state.liveToken ? (
+                  <SectionPanel index="L1" title="Scout reports" meta="parallel">
+                    <AnalystsSection
+                      token={state.token ?? state.liveToken!}
+                      symbol={state.token ? state.symbol : state.liveSymbol}
+                      reports={state.reports ?? state.liveReports}
+                    />
                   </SectionPanel>
-                )}
+                ) : null}
                 {state.debate.length > 0 && (
                   <SectionPanel index="L2" title="Bull vs bear" meta={`${state.debate.length} turns`}>
                     <DebateSection debate={state.debate} />
