@@ -146,7 +146,7 @@ export default async function ReportPage({
 
           <DecisionCard markdown={run.decision} />
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <CopyThreadButton
               tokenName={run.token.name}
               tokenSymbol={run.token.symbol}
@@ -157,7 +157,7 @@ export default async function ReportPage({
             />
             <Link
               href="/analyze"
-              className="cursor-pointer rounded border border-[#22c55e] bg-[#22c55e] px-3 py-1.5 font-mono text-xs font-bold tracking-wider text-black uppercase transition-colors hover:bg-transparent hover:text-[#22c55e]"
+              className="cursor-pointer rounded border border-[#22c55e] bg-[#22c55e] px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-transparent hover:text-[#22c55e]"
             >
               Analyze another →
             </Link>
