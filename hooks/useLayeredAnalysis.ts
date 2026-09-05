@@ -5,7 +5,7 @@ import { streamSSE } from "@/lib/client/sse";
 import { initialLayeredState, layeredReducer, type LayeredState } from "@/lib/layered/reducer";
 import type { L1Result, L2Result, L3Result, L4Result } from "@/lib/layered/types";
 
-const STORAGE_KEY = "hoheee:layered-run";
+const STORAGE_KEY = "aries:layered-run";
 
 interface SavedLayered {
   v: number;

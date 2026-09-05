@@ -59,8 +59,8 @@ export default function Home() {
             <div className="flex items-center justify-between gap-3">
               <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight">
                 {/* eslint-disable-next-line @next/next/no-img-element -- static local webp, no optimizer needed */}
-                <img src="/logo.webp" alt="Hoheee logo" width={32} height={32} className="rounded" />
-                Hoheee <span className="text-[#22c55e]">—</span> Solana Token Research
+                <img src="/logo.webp" alt="Aries logo" width={32} height={32} className="rounded" />
+                Aries <span className="text-[#22c55e]">—</span> Solana Token Research
               </h1>
               <WalletButton />
             </div>

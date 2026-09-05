@@ -1,4 +1,4 @@
-# Hoheee — Solana Token Research
+# Aries — Solana Token Research
 
 Stage-1 proof of concept: paste a Solana token mint address, get a multi-agent
 research report with a final trading decision. Research tool, not financial advice.

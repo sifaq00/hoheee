@@ -6,7 +6,7 @@ import { loadReport } from "@/lib/layered/supabase";
 
 // Node.js runtime (default): reads runs/[id].json from disk at build time.
 // Edge runtime cannot use node:fs, so Edge is not an option here.
-export const alt = "Hoheee token research report";
+export const alt = "Aries token research report";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

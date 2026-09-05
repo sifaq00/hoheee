@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  title: "Hoheee — Solana Token Research",
+  title: "Aries — Solana Token Research",
   description: "Research tool, not financial advice.",
   icons: { icon: "/logo.webp", apple: "/logo.webp" },
 };

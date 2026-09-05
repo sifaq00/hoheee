@@ -59,9 +59,9 @@ interface WalletContextType {
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
-const ADDR_KEY = "hoheee:wallet-address";
-const NAME_KEY = "hoheee:wallet-name";
-const ICON_KEY = "hoheee:wallet-icon";
+const ADDR_KEY = "aries:wallet-address";
+const NAME_KEY = "aries:wallet-name";
+const ICON_KEY = "aries:wallet-icon";
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [connected, setConnected] = useState(false);
