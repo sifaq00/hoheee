@@ -145,14 +145,14 @@ export default function Analyze() {
                     />
                   </SectionPanel>
                 ) : null}
-                {state.debate.length > 0 && (
+                {(state.debate.length > 0 || state.step === "l2") && (
                   <SectionPanel index="L2" title="Bull vs bear" meta={`${state.debate.length} turns`}>
-                    <DebateSection debate={state.debate} />
+                    <DebateSection debate={state.debate} pending={state.step === "l2"} />
                   </SectionPanel>
                 )}
-                {state.risks && (
-                  <SectionPanel index="L3" title="Risk review" meta="3/3 parallel">
-                    <RiskSection risks={state.risks} />
+                {(state.risks || state.step === "l3") && (
+                  <SectionPanel index="L3" title="Risk review" meta="parallel">
+                    <RiskSection risks={state.risks} pending={state.step === "l3"} />
                   </SectionPanel>
                 )}
               </div>
