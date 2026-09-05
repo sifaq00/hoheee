@@ -25,8 +25,8 @@ export default function Principles() {
         </div>
         <div className="mt-12 grid gap-5 md:grid-cols-3">
           {ITEMS.map((p, i) => (
-            <Reveal key={p.n} delay={i * 90}>
-              <article className="h-full border-t border-black/20 pt-6">
+            <Reveal key={p.n} delay={i * 90} className="h-full">
+              <article className="h-full border-t-2 border-black/20 pt-6 transition-all duration-300 hover:-translate-y-1 hover:border-[#16a34a]">
                 <p className="font-mono text-[13px] font-semibold tracking-[0.1em] text-[#16a34a]">{p.n}</p>
                 <h3 className="font-display mt-3 text-xl font-semibold text-black">{p.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-600">{p.desc}</p>

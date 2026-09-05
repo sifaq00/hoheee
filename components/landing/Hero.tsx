@@ -30,9 +30,9 @@ export default function Hero() {
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3 md:justify-start">
               <Link
                 href="/analyze"
-                className="cursor-pointer rounded-md bg-[#22c55e] px-6 py-3 font-mono text-sm font-bold text-black transition-colors duration-200 hover:bg-[#4ade80]"
+                className="group cursor-pointer rounded-md bg-[#22c55e] px-6 py-3 font-mono text-sm font-bold text-black transition-all duration-200 hover:bg-[#4ade80] active:scale-[0.98]"
               >
-                See the work
+                See the work <span aria-hidden="true" className="inline-block transition-transform duration-200 group-hover:translate-x-1">→</span>
               </Link>
               <a
                 href="#live"

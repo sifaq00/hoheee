@@ -18,8 +18,8 @@ export default function ReportAnatomy() {
         </div>
         <div className="mt-12 grid gap-5 sm:grid-cols-2">
           {CARDS.map((c, i) => (
-            <Reveal key={c.title} delay={(i % 2) * 90}>
-              <article className={`flex h-full flex-col gap-3 rounded-md border border-black/10 bg-white p-7 ${c.live ? "border-[#22c55e] bg-[#22c55e]" : ""}`}>
+            <Reveal key={c.title} delay={(i % 2) * 90} className="h-full">
+              <article className={`flex h-full flex-col gap-3 rounded-md border border-black/10 bg-white p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.1)] ${c.live ? "border-[#22c55e] bg-[#22c55e]" : ""}`}>
                 <p className={`font-mono text-[11px] font-semibold tracking-[0.14em] uppercase ${c.live ? "text-black/60" : "text-zinc-500"}`}>{c.tag}</p>
                 <h3 className={`font-display text-2xl font-medium tracking-tight ${c.live ? "text-black" : "text-black"}`}>{c.title}</h3>
                 <p className={`flex-1 text-sm leading-relaxed ${c.live ? "text-black/70" : "text-zinc-600"}`}>{c.desc}</p>
