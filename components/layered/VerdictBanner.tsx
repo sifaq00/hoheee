@@ -1,5 +1,6 @@
 import DecisionCard from "@/components/DecisionCard";
 import { parseDecision } from "@/lib/decision";
+import ShareLinkButton from "./ShareLinkButton";
 
 function ratingTone(rating: string | null): { text: string; border: string; glow: string } {
   const r = (rating ?? "").toLowerCase();
@@ -19,9 +20,9 @@ export default function VerdictBanner({ decision, shareId }: { decision: string;
         {parsed.confidence && (
           <p className="mt-1 font-mono text-xs tracking-widest text-zinc-400 uppercase">Confidence · {parsed.confidence}</p>
         )}
-        <a href={`/r/${shareId}`} className="mt-4 font-mono text-xs text-[#22c55e] underline hover:text-white">
-          Share this report → /r/{shareId.slice(0, 8)}…
-        </a>
+        <div className="mt-4 flex justify-center">
+          <ShareLinkButton shareId={shareId} />
+        </div>
       </div>
       <div className="border-t border-white/10 px-4 py-3">
         <DecisionCard markdown={decision} />
