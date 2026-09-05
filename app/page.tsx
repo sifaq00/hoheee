@@ -69,6 +69,13 @@ export interface FoundToken {
   change24h: number;
 }
 
+export interface BootLine {
+  id: number;
+  t: number;
+  text: string;
+  tone: "ok" | "dim" | "bad";
+}
+
 export const STREAM_INTERRUPTED_MSG = "Stream interrupted — partial results below";
 
 // Owns the phase state machine plus the streaming feed. One AbortController
@@ -85,6 +92,8 @@ export function useAnalysis() {
   const [runId, setRunId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const idRef = useRef(0);
+  const t0Ref = useRef(0);
+  const [boot, setBoot] = useState<BootLine[]>([]);
 
   const ensureAgent = useCallback((key: string) => {
     setAgentOrder((prev) => (prev.includes(key) ? prev : [...prev, key]));
@@ -105,8 +114,15 @@ export function useAnalysis() {
     setDecision(null);
     setFeedErrors([]);
     setStreamError(null);
+    setBoot([]);
     setRunId(null);
     setPhase("idle");
+  }, []);
+
+  const logBoot = useCallback((text: string, tone: BootLine["tone"] = "dim") => {
+    const id = ++idRef.current;
+    const t = (Date.now() - t0Ref.current) / 1000;
+    setBoot((prev) => [...prev.slice(-39), { id, t, text, tone }]);
   }, []);
 
   const startAnalysis = useCallback(
@@ -119,26 +135,31 @@ export function useAnalysis() {
       setAgentOrder([]);
       setAgents({});
       setDebates([]);
-      setDecision(null);
-      setFeedErrors([]);
-      setStreamError(null);
-      setRunId(null);
-      setPhase("running");
+    setDecision(null);
+    setFeedErrors([]);
+    setStreamError(null);
+    setBoot([]);
+    setRunId(null);
+    setPhase("running");
+    t0Ref.current = Date.now();
+    logBoot(`run ${mint.slice(0, 8)} .... INITIATED`);
 
-      const onEvent = (type: string, data: unknown) => {
-        const e = data as AgentEvent;
-        const kind = e?.type ?? type;
-        switch (kind) {
-          case "token_found": {
-            const t = e as Extract<AgentEvent, { type: "token_found" }>;
-            setToken({ name: t.name, price: t.price, liquidity: t.liquidity, change24h: t.change24h });
-            break;
-          }
-          case "agent_start": {
-            const a = e as Extract<AgentEvent, { type: "agent_start" }>;
-            ensureAgent(String(a.agent ?? "unknown"));
-            break;
-          }
+    const onEvent = (type: string, data: unknown) => {
+      const e = data as AgentEvent;
+      const kind = e?.type ?? type;
+      switch (kind) {
+        case "token_found": {
+          const t = e as Extract<AgentEvent, { type: "token_found" }>;
+          setToken({ name: t.name, price: t.price, liquidity: t.liquidity, change24h: t.change24h });
+          logBoot(`uplink ${t.name} .... OK`, "ok");
+          break;
+        }
+        case "agent_start": {
+          const a = e as Extract<AgentEvent, { type: "agent_start" }>;
+          ensureAgent(String(a.agent ?? "unknown"));
+          logBoot(`scout:${String(a.agent ?? "unknown")} .... ENGAGED`);
+          break;
+        }
           case "reasoning": {
             const r = e as Extract<AgentEvent, { type: "reasoning" }>;
             const key = String(r.agent ?? "unknown");
@@ -161,40 +182,45 @@ export function useAnalysis() {
           }
           case "tool_result":
             break;
-          case "agent_report": {
-            const r = e as Extract<AgentEvent, { type: "agent_report" }>;
-            const key = String(r.agent ?? "unknown");
-            ensureAgent(key);
-            setAgents((prev) => ({
+        case "agent_report": {
+          const r = e as Extract<AgentEvent, { type: "agent_report" }>;
+          const key = String(r.agent ?? "unknown");
+          ensureAgent(key);
+          logBoot(`scout:${key} .... FILED`, "ok");
+          setAgents((prev) => ({
               ...prev,
               [key]: { ...prev[key], agent: key, status: "done", reasoning: prev[key]?.reasoning ?? "", tools: prev[key]?.tools ?? [], report: r.report },
             }));
             break;
           }
-          case "debate_turn": {
-            const d = e as Extract<AgentEvent, { type: "debate_turn" }>;
-            const id = ++idRef.current;
-            setDebates((prev) => [...prev, { id, phase: d.phase, round: d.round, side: d.side, text: d.text }]);
-            break;
-          }
-          case "decision": {
-            const d = e as Extract<AgentEvent, { type: "decision" }>;
-            setDecision(d.markdown);
-            setPhase("done");
-            break;
-          }
-          case "error": {
-            const er = e as unknown as { agent?: unknown; message?: unknown };
-            const id = ++idRef.current;
-            setFeedErrors((prev) => [...prev, { id, agent: String(er.agent ?? "unknown"), message: String(er.message ?? "Unknown error") }]);
-            break;
-          }
-          case "done": {
-            const d = e as Extract<AgentEvent, { type: "done" }>;
-            setRunId(d.runId);
-            setPhase("done");
-            break;
-          }
+        case "debate_turn": {
+          const d = e as Extract<AgentEvent, { type: "debate_turn" }>;
+          const id = ++idRef.current;
+          setDebates((prev) => [...prev, { id, phase: d.phase, round: d.round, side: d.side, text: d.text }]);
+          logBoot(`clash:${d.side} r${d.round} .... LOGGED`);
+          break;
+        }
+        case "decision": {
+          const d = e as Extract<AgentEvent, { type: "decision" }>;
+          setDecision(d.markdown);
+          setPhase("done");
+          logBoot("verdict .... SEALED", "ok");
+          break;
+        }
+        case "error": {
+          const er = e as unknown as { agent?: unknown; message?: unknown };
+          const id = ++idRef.current;
+          setFeedErrors((prev) => [...prev, { id, agent: String(er.agent ?? "unknown"), message: String(er.message ?? "Unknown error") }]);
+          logBoot(`${String(er.agent ?? "unknown")} .... FAULT`, "bad");
+          break;
+        }
+        case "done": {
+          const d = e as Extract<AgentEvent, { type: "done" }>;
+          setRunId(d.runId);
+          setPhase("done");
+          logBoot("stream .... CLOSED");
+          break;
+        }
           default:
             break;
         }
@@ -202,21 +228,102 @@ export function useAnalysis() {
 
       void streamSSE("/api/analyze", { mint }, onEvent, controller.signal).catch((err) => {
         if (controller.signal.aborted) return;
-        setStreamError(err instanceof Error ? `${STREAM_INTERRUPTED_MSG}: ${err.message}` : STREAM_INTERRUPTED_MSG);
+        const msg = err instanceof Error ? `${STREAM_INTERRUPTED_MSG}: ${err.message}` : STREAM_INTERRUPTED_MSG;
+        setStreamError(msg);
+        logBoot("stream .... CUT", "bad");
       });
     },
-    [ensureAgent]
+    [ensureAgent, logBoot]
   );
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  return { phase, token, agentOrder, agents, debates, decision, feedErrors, streamError, runId, startAnalysis, reset };
+  return { phase, token, agentOrder, agents, debates, decision, feedErrors, streamError, boot, runId, startAnalysis, reset };
 }
 
 type PreviewStatus = "none" | "loading" | "ok" | "not-found" | "error";
 
+type RailState = "idle" | "active" | "done";
+
+function RailStep({ label, sub, state }: { label: string; sub: string; state: RailState }) {
+  const glyph = state === "done" ? "■" : state === "active" ? "▶" : "□";
+  const color =
+    state === "done" ? "text-[#22c55e]" : state === "active" ? "animate-pulse text-[#22c55e]" : "text-zinc-700";
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <span className={`font-mono text-sm ${color}`}>{glyph}</span>
+      <div className="flex min-w-0 flex-col">
+        <span className="font-mono text-xs font-semibold tracking-wider text-zinc-300">{label}</span>
+        <span className="truncate font-mono text-xs text-zinc-500">{sub}</span>
+      </div>
+    </div>
+  );
+}
+
+function PhaseRail({
+  token,
+  agents,
+  agentOrder,
+  debates,
+  decision,
+  phase,
+}: {
+  token: FoundToken | null;
+  agents: Record<string, AgentFeedState>;
+  agentOrder: string[];
+  debates: DebateItem[];
+  decision: string | null;
+  phase: AnalysisPhase;
+}) {
+  const filed = agentOrder.filter((k) => agents[k]?.status === "done").length;
+  const running = phase === "running";
+  const link: RailState = token ? "done" : running ? "active" : "idle";
+  const scouts: RailState = filed === 4 ? "done" : agentOrder.length > 0 ? "active" : "idle";
+  const clash: RailState = decision ? "done" : filed === 4 ? "active" : "idle";
+  const verdict: RailState = decision ? "done" : debates.length > 0 ? "active" : "idle";
+  return (
+    <div
+      aria-label="Pipeline phases"
+      className="grid grid-cols-2 gap-3 rounded border border-zinc-800 bg-zinc-950 p-3 lg:grid-cols-4"
+    >
+      <RailStep label="LINK" sub={token?.name ?? "await uplink"} state={link} />
+      <RailStep label="SCOUTS" sub={`${filed}/4 filed`} state={scouts} />
+      <RailStep label="CLASH" sub={debates.length > 0 ? `${debates.length} turns logged` : "await scouts"} state={clash} />
+      <RailStep label="VERDICT" sub={decision ? "sealed" : "await clash"} state={verdict} />
+    </div>
+  );
+}
+
+function BootLog({ lines, running }: { lines: BootLine[]; running: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [lines]);
+  return (
+    <section aria-label="Boot log" className="rounded border border-zinc-800 bg-zinc-950 p-4">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Boot log</h2>
+      <div ref={ref} className="mt-2 h-56 overflow-y-auto font-mono text-xs leading-relaxed">
+        {lines.map((l) => (
+          <p
+            key={l.id}
+            className={l.tone === "ok" ? "text-[#22c55e]" : l.tone === "bad" ? "text-[#ef4444]" : "text-zinc-500"}
+          >
+            <span className="text-zinc-600">t+{l.t.toFixed(1)}s</span> {l.text}
+          </p>
+        ))}
+        {running && (
+          <p className="text-[#22c55e]">
+            <span className="animate-pulse">▊</span>
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
-  const { phase, token, agentOrder, agents, debates, decision, feedErrors, streamError, startAnalysis, reset } = useAnalysis();
+  const { phase, token, agentOrder, agents, debates, decision, feedErrors, streamError, boot, startAnalysis, reset } = useAnalysis();
   const [mint, setMint] = useState("");
   const [touched, setTouched] = useState(false);
   const [preview, setPreview] = useState<TokenPreview | null>(null);
@@ -276,14 +383,15 @@ export default function Home() {
 
   return (
     <div className="min-h-full flex flex-col items-center px-4 py-10">
-      <main className="w-full max-w-2xl flex flex-col gap-6">
+      <main className="w-full max-w-7xl flex flex-col gap-6">
+        <div className="w-full max-w-2xl mx-auto flex flex-col gap-6">
         <header className="flex flex-col gap-2 border-b border-zinc-800 pb-4">
           <h1 className="text-xl font-bold tracking-tight">
             Hoheee <span className="text-[#22c55e]">—</span> Solana Token
             Research
           </h1>
           <p className="text-sm text-zinc-400">
-            Research tool, not financial advice. Analysis takes 5-15 minutes.
+            Research tool, not financial advice. Analysis takes under a minute.
           </p>
         </header>
 
@@ -389,32 +497,68 @@ export default function Home() {
                 {e.agent}: {e.message}
               </p>
             ))}
+            <PhaseRail
+              token={token}
+              agents={agents}
+              agentOrder={agentOrder}
+              debates={debates}
+              decision={decision}
+              phase={phase}
+            />
             {phase === "done" && decision && <DecisionCard markdown={decision} />}
-            {token && (
-              <TokenCard
-                name={token.name}
-                price={token.price}
-                liquidity={token.liquidity}
-                change24h={token.change24h}
-              />
-            )}
-            {agentOrder.map((key) => {
-              const a = agents[key];
-              if (!a) return null;
-              return (
-                <AgentCard
-                  key={key}
-                  agent={a.agent}
-                  status={a.status}
-                  reasoning={a.reasoning}
-                  tools={a.tools}
-                  report={a.report}
-                />
-              );
-            })}
-            {debates.map((d) => (
-              <DebateCard key={d.id} phase={d.phase} round={d.round} side={d.side} text={d.text} />
-            ))}
+            <div className="grid items-start gap-4 xl:grid-cols-3">
+              <div className="flex min-w-0 flex-col gap-4 xl:col-span-2">
+                {token && (
+                  <TokenCard
+                    name={token.name}
+                    price={token.price}
+                    liquidity={token.liquidity}
+                    change24h={token.change24h}
+                  />
+                )}
+                {agentOrder.length > 0 && (
+                  <section className="flex flex-col gap-3">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                      Analysts ({agentOrder.filter((k) => agents[k]?.status === "done").length}/{agentOrder.length})
+                    </h2>
+                    <div className="grid items-start gap-4 sm:grid-cols-2">
+                      {agentOrder.map((key) => {
+                        const a = agents[key];
+                        if (!a) return null;
+                        return (
+                          <div key={key} className="min-w-0">
+                            <AgentCard
+                              agent={a.agent}
+                              status={a.status}
+                              reasoning={a.reasoning}
+                              tools={a.tools}
+                              report={a.report}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+                {debates.length > 0 && (
+                  <section className="flex flex-col gap-3">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                      Debate ({debates.length})
+                    </h2>
+                    <div className="grid items-start gap-4 md:grid-cols-2">
+                      {debates.map((d) => (
+                        <div key={d.id} className="min-w-0">
+                          <DebateCard phase={d.phase} round={d.round} side={d.side} text={d.text} />
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </div>
+              <aside className="flex min-w-0 flex-col gap-4 xl:sticky xl:top-4">
+                <BootLog lines={boot} running={phase === "running"} />
+              </aside>
+            </div>
             {phase === "done" ? (
               <button
                 type="button"
@@ -434,6 +578,7 @@ export default function Home() {
             )}
           </div>
         )}
+        </div>
       </main>
       <footer className="mt-6 w-full max-w-2xl border-t border-zinc-800 pt-4 text-xs leading-relaxed text-zinc-500">
           <p>
