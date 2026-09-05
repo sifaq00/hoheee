@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { runFlashAnalysis } from "../lib/pipeline/flash";
+import { runFlashAnalysis, stripToolCallXml } from "../lib/pipeline/flash";
 import type { AgentEvent } from "../lib/pipeline/state";
 
 const LLM_OK = (content: string) => ({
@@ -44,5 +44,17 @@ describe("runFlashAnalysis", () => {
   it("rejects invalid mint without any fetch", async () => {
     await expect(runFlashAnalysis("xxx", () => undefined)).rejects.toThrow("Invalid Solana mint address");
     expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(0);
+  });
+});
+
+describe("stripToolCallXml", () => {
+  it("removes wishful tool-call blocks and collapses gaps", () => {
+    const dirty =
+      "Now let me get data.\n<tool_call> <function=foo> <parameter=mint>abc</parameter> </function> </tool_call>\n\n\nReal finding.";
+    expect(stripToolCallXml(dirty)).toBe("Now let me get data.\n\nReal finding.");
+  });
+
+  it("leaves clean text untouched", () => {
+    expect(stripToolCallXml("Just a finding.")).toBe("Just a finding.");
   });
 });

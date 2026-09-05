@@ -31,6 +31,19 @@ const BEAR_SYSTEM =
 const DECIDER_SYSTEM =
   "You are the Portfolio Manager. Decide fast from mini-reports and one debate round. No tools. English.";
 
+// The fast model starves at cap 1 and writes wishful <tool_call> blocks as
+// text into its report. Guard the prompt and strip leftovers below.
+const OUTPUT_GUARD =
+  " Output findings only: never emit <tool_call> blocks, planning notes, or meta-commentary about your next steps.";
+
+export function stripToolCallXml(text: string): string {
+  return text
+    .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 const DECIDER_STRUCTURE =
   "Your output MUST be machine-parseable with this exact structure:\n" +
   "RATING: <exactly one of Buy, Overweight, Hold, Underweight, Sell>\n" +
@@ -60,7 +73,7 @@ async function runFlashSlot(
       agent,
       mint,
       summary,
-      systemRole,
+      systemRole: systemRole + OUTPUT_GUARD,
       toolNames,
       cap: 1,
       maxTokens: 400,
@@ -68,8 +81,9 @@ async function runFlashSlot(
       signal,
       emit,
     });
-    emit({ type: "agent_report", agent, report });
-    return report;
+    const clean = stripToolCallXml(report);
+    emit({ type: "agent_report", agent, report: clean });
+    return clean;
   } catch (err) {
     if (!signal?.aborted) emit({ type: "error", agent, message: err instanceof Error ? err.message : String(err) });
     return MISSING_REPORT;

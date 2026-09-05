@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentEvent, TokenSummary } from "@/lib/pipeline/state";
+import { stripToolCallXml } from "@/lib/pipeline/flash";
 import { streamSSE } from "@/lib/client/sse";
 import { fmtNum } from "@/lib/client/format";
 import TokenCard from "@/components/TokenCard";
@@ -185,7 +186,7 @@ export function useAnalysis() {
             const r = e as Extract<AgentEvent, { type: "tool_result" }>;
             const key = String(r.agent ?? "unknown");
             ensureAgent(key);
-            const summary = String(r.summary ?? "").slice(0, 140);
+            const summary = stripToolCallXml(String(r.summary ?? "")).slice(0, 140);
             setAgents((prev) => ({
               ...prev,
               [key]: {
