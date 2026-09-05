@@ -8,7 +8,7 @@ export default function Hero() {
   return (
     <section className="relative overflow-hidden" aria-labelledby="hero-title">
       <div aria-hidden="true" className="land-grid pointer-events-none absolute inset-0" />
-      <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pt-14 pb-16 md:grid-cols-2 md:pt-20 md:pb-20">
+      <div className="relative mx-auto grid max-w-6xl items-start gap-12 px-4 pt-14 pb-16 md:grid-cols-2 md:pt-20 md:pb-20">
         <div className="text-center md:text-left">
           <Reveal>
             <p className="inline-flex items-center gap-2 rounded-md border border-[#16a34a]/30 bg-[#22c55e]/10 px-3 py-1.5 font-mono text-[10px] tracking-[0.2em] text-[#15803d] uppercase">

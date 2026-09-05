@@ -172,7 +172,7 @@ body {
 }
 
 .iso-slab:hover, .iso-slab:focus-visible {
-  transform: translateZ(calc(var(--z, 0) * var(--step) + 14px));
+  transform: translateX(18px) translateZ(calc(var(--z, 0) * var(--step)));
 }
 
 .iso-slab:focus-visible {
@@ -251,12 +251,15 @@ body {
 }
 
 .land-stack-detail {
-  margin-top: 12px;
+  position: relative;
+  z-index: 10;
+  margin-top: -52px;
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   padding: 20px 22px;
   min-height: 172px;
   background: #fff;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
 }
 
 /* Live pulse dot. */
