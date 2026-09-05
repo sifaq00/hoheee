@@ -166,6 +166,21 @@ export default function Analyze() {
 
               <div className="flex min-w-0 flex-col gap-4">
                 {done && <VerdictBanner decision={state.decision!} shareId={state.shareId!} />}
+                {state.step === "l4" && (
+                  <SectionPanel index="L4" title="Sealing verdict" meta="decider">
+                    <div aria-label="Decider working" className="skeleton rounded border border-zinc-800 bg-zinc-950 p-4">
+                      <p className="font-mono text-xs font-bold tracking-wider text-zinc-500 uppercase">decider</p>
+                      <div aria-hidden="true" className="mt-3 flex flex-col gap-2">
+                        <span className="h-2 w-2/5 rounded bg-zinc-800" />
+                        <span className="h-2 w-11/12 rounded bg-zinc-800" />
+                        <span className="h-2 w-3/5 rounded bg-zinc-800" />
+                      </div>
+                      <p className="mt-2 font-mono text-xs text-[#22c55e]">
+                        weighing debate + risks<span className="land-caret">…</span>
+                      </p>
+                    </div>
+                  </SectionPanel>
+                )}
                 {(state.token && state.reports) || state.liveToken ? (
                   <SectionPanel index="L1" title="Scout reports" meta="parallel">
                     <AnalystsSection
