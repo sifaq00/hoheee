@@ -28,9 +28,9 @@ export default function PoweredBy() {
                       Mi
                     </span>
                   )}
-                  <span>
-                    <span className="font-display block text-base font-bold tracking-tight text-black">{s.name}</span>
-                    <span className="font-mono text-[9px] font-semibold tracking-[0.18em] text-zinc-500 uppercase">{s.role}</span>
+                  <span className="leading-none">
+                    <span className="font-display block text-base font-bold leading-none tracking-tight text-black">{s.name}</span>
+                    <span className="font-mono mt-1 block text-[9px] font-semibold leading-none tracking-[0.18em] text-zinc-500 uppercase">{s.role}</span>
                   </span>
                 </div>
               ))}
