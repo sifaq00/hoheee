@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
 export interface ToolBadge {
@@ -16,14 +16,40 @@ interface AgentCardProps {
   report: string | null;
 }
 
-// Per-agent cumulative card: live reasoning buffer, tool badges, final report.
-export default function AgentCard({ agent, status, reasoning, tools, report }: AgentCardProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
+// Per-agent cumulative card: tool badges, final report (typewriter reveal).
+// Raw reasoning stream is intentionally never rendered — while running the
+// card shows a single "reasoning …" pulse instead.
+const TYPEWRITE_STEP = 12;
+const TYPEWRITE_MS = 16;
+
+export default function AgentCard({ agent, status, tools, report }: AgentCardProps) {
+  // Typewriter reveal: reset the counter during render when a new report
+  // arrives (sanctioned render-phase adjustment, no setState-in-effect).
+  const [typed, setTyped] = useState(0);
+  const [typedFor, setTypedFor] = useState<string | null>(null);
+  if (report !== typedFor) {
+    setTypedFor(report);
+    setTyped(0);
+  }
+  const done = report !== null && typedFor === report && typed >= report.length;
 
   useEffect(() => {
-    const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [reasoning]);
+    if (report === null || typedFor !== report) return;
+    const total = report.length;
+    const step = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? total
+      : TYPEWRITE_STEP;
+    const timer = setInterval(() => {
+      setTyped((prev) => {
+        if (prev >= total) {
+          clearInterval(timer);
+          return prev;
+        }
+        return Math.min(prev + step, total);
+      });
+    }, TYPEWRITE_MS);
+    return () => clearInterval(timer);
+  }, [report, typedFor]);
 
   return (
     <section
@@ -57,22 +83,22 @@ export default function AgentCard({ agent, status, reasoning, tools, report }: A
         </div>
       )}
 
-      {reasoning && (
-        <details open className="mt-2">
-          <summary className="cursor-pointer text-xs text-zinc-500">Reasoning</summary>
-          <div
-            ref={scrollRef}
-            data-testid={`agent-reasoning-${agent}`}
-            className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap text-sm italic text-zinc-400"
-          >
-            {reasoning}
-          </div>
-        </details>
+      {status === "running" && report === null && (
+        <p className="mt-2 font-mono text-xs text-zinc-500">
+          <span className="animate-pulse">reasoning …</span>
+        </p>
       )}
 
-      {report && (
+      {report !== null && (
         <div data-testid={`agent-report-${agent}`} className="md mt-3 max-w-none">
-          <ReactMarkdown>{report}</ReactMarkdown>
+          {done ? (
+            <ReactMarkdown>{report}</ReactMarkdown>
+          ) : (
+            <p className="whitespace-pre-wrap text-sm text-zinc-300">
+              {report.slice(0, typed)}
+              <span className="animate-pulse text-[#22c55e]">▊</span>
+            </p>
+          )}
         </div>
       )}
     </section>
