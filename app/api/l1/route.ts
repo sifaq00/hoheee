@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   let wallet: unknown;
   try {
     const body = await req.json();
-    chain = body.chain ?? "solana";
+    chain = body.chainId ?? "solana";
     mint = body.mint;
     wallet = body.wallet;
   } catch {
