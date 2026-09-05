@@ -104,8 +104,39 @@ body {
   50% { opacity: 0; }
 }
 
+/* Mount-in animation for streamed cards/turns (no abrupt pops). */
+.anim-in {
+  animation: land-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes land-rise {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Skeleton shimmer for running placeholders. */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(34, 197, 94, 0.08) 50%, transparent 80%);
+  animation: land-shimmer 1.6s linear infinite;
+}
+
+@keyframes land-shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root { scroll-behavior: auto; }
+  .anim-in { animation: none; }
+  .skeleton::after { animation: none; }
   .land-reveal { opacity: 1; transform: none; transition: none; }
   .land-sweep, .land-ring, .land-marquee, .land-caret { animation: none !important; }
   .land-marquee { width: 100%; flex-wrap: wrap; justify-content: center; }

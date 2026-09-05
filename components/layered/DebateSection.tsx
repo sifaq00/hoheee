@@ -7,7 +7,9 @@ export default function DebateSection({ debate }: { debate: DebateTurn[] }) {
     <div className="flex flex-col gap-3" aria-label="Debate">
       <div className="flex flex-col gap-3">
         {debate.map((d, i) => (
-          <DebateCard key={i} phase={d.phase} round={d.round} side={d.side} text={d.text} />
+          <div key={`${d.round}-${d.side}`} className="anim-in" style={{ animationDelay: `${Math.min(i * 80, 320)}ms` }}>
+            <DebateCard phase={d.phase} round={d.round} side={d.side} text={d.text} />
+          </div>
         ))}
       </div>
     </div>
