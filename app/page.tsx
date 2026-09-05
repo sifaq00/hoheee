@@ -383,7 +383,7 @@ export default function Home() {
 
   return (
     <div className="min-h-full flex flex-col items-center px-4 py-10">
-      <main className="w-full max-w-7xl flex flex-col gap-6">
+      <main className="w-full max-w-none flex flex-col gap-6">
         <div className="w-full max-w-2xl mx-auto flex flex-col gap-6">
         <header className="flex flex-col gap-2 border-b border-zinc-800 pb-4">
           <h1 className="text-xl font-bold tracking-tight">
@@ -580,7 +580,7 @@ export default function Home() {
         )}
         </div>
       </main>
-      <footer className="mt-6 w-full max-w-2xl border-t border-zinc-800 pt-4 text-xs leading-relaxed text-zinc-500">
+      <footer className="mt-6 w-full border-t border-zinc-800 pt-4 text-xs leading-relaxed text-zinc-500">
           <p>
             Each flash run takes under a minute: mini analysts plus one debate
             round, no risk review.
