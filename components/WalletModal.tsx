@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { usePathname } from "next/navigation";
 import { SOLANA_WALLETS, useWallet, type SolanaWalletOption } from "@/context/WalletContext";
 
 function getPhantomProvider() {
@@ -17,6 +18,8 @@ function withTimeout<T>(promise: Promise<T>, ms: number, errMsg: string): Promis
 
 export default function WalletModal() {
   const { isModalOpen, setIsModalOpen, connect } = useWallet();
+  const pathname = usePathname();
+  const light = pathname === "/";
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -86,14 +89,14 @@ export default function WalletModal() {
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Connect wallet">
       <div className="absolute inset-0 bg-black/70" onClick={() => setIsModalOpen(false)} />
-      <div className="relative w-full max-w-sm rounded border border-zinc-800 bg-zinc-950 p-5">
+      <div className={`relative w-full max-w-sm rounded border p-5 ${light ? "border-black/10 bg-white" : "border-zinc-800 bg-zinc-950"}`}>
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">Connect Solana wallet</h2>
-          <button type="button" aria-label="Close" onClick={() => setIsModalOpen(false)} className="rounded px-2 py-1 text-zinc-400 hover:text-white">
+          <h2 className={`text-base font-semibold ${light ? "text-black" : "text-white"}`}>Connect Solana wallet</h2>
+          <button type="button" aria-label="Close" onClick={() => setIsModalOpen(false)} className={`rounded px-2 py-1 ${light ? "text-zinc-500 hover:text-black" : "text-zinc-400 hover:text-white"}`}>
             ✕
           </button>
         </div>
-        <p className="mt-1 text-xs text-zinc-500">Optional. Unlocks your report history on this device.</p>
+        <p className={`mt-1 text-xs ${light ? "text-zinc-500" : "text-zinc-500"}`}>A wallet is required to run analysis — reports save to your history.</p>
         <div className="mt-4 flex flex-col gap-2">
           {SOLANA_WALLETS.map((w) => (
             <button
@@ -101,11 +104,15 @@ export default function WalletModal() {
               type="button"
               disabled={connectingId !== null}
               onClick={() => void select(w)}
-              className="flex items-center gap-3 rounded border border-zinc-800 px-3 py-2 text-left text-sm hover:border-[#22c55e] disabled:opacity-50"
+              className={`flex items-center gap-3 rounded border px-3 py-2 text-left text-sm disabled:opacity-50 ${
+                light
+                  ? "border-black/10 hover:border-[#16a34a]"
+                  : "border-zinc-800 hover:border-[#22c55e]"
+              }`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- static local svg, no optimizer needed */}
               <img src={w.icon} alt="" width={24} height={24} />
-              <span className="flex-1 font-medium">{w.name}</span>
+              <span className={`flex-1 font-medium ${light ? "text-black" : "text-white"}`}>{w.name}</span>
               <span className="font-mono text-xs text-zinc-500">{connectingId === w.id ? "…" : wallet_detect(w) ? "detected" : "install"}</span>
             </button>
           ))}
