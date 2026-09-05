@@ -68,6 +68,11 @@ export function useLayeredAnalysis() {
     stateRef.current = state;
   }, [state]);
 
+  const failRun = useCallback((step: Step, signal: AbortSignal, err: unknown) => {
+    if (signal.aborted) return;
+    dispatch({ type: "FAIL", step, message: err instanceof Error ? err.message : String(err) });
+  }, []);
+
   const runFrom = useCallback(async (from: Step, seed: Seed, signal: AbortSignal) => {
     const mint = seed.mint;
     let { token, symbol, reports, debate, risks, chain } = seed;
@@ -88,26 +93,31 @@ export function useLayeredAnalysis() {
       if (!signal.aborted) dispatch({ type: "L1_OK", token, symbol, reports, chain });
     }
     if (signal.aborted) return;
-    if (!reports || !chain) throw new Error("Missing L1 reports");
-    const l2 = (await streamLayer("/api/l2", { mint, reports, rounds: 2, chain }, signal, (type, d) => {
-      if (type === "debate_turn" && typeof d.side === "string" && typeof d.text === "string") {
-        dispatch({ type: "L2_TURN", turn: { phase: "invest", round: Number(d.round) || 0, side: d.side as "bull" | "bear", text: d.text } });
-      }
-    })) as unknown as L2Result;
-    debate = l2.debate;
-    chain = l2.chain;
-    if (!signal.aborted) dispatch({ type: "L2_OK", debate, chain });
+    if (from === "l1" || from === "l2") {
+      if (!reports || !chain) throw new Error("Missing L1 reports");
+      const l2 = (await streamLayer("/api/l2", { mint, reports, rounds: 2, chain }, signal, (type, d) => {
+        if (type === "debate_turn" && typeof d.side === "string" && typeof d.text === "string") {
+          dispatch({ type: "L2_TURN", turn: { phase: "invest", round: Number(d.round) || 0, side: d.side as "bull" | "bear", text: d.text } });
+        }
+      })) as unknown as L2Result;
+      debate = l2.debate;
+      chain = l2.chain;
+      if (!signal.aborted) dispatch({ type: "L2_OK", debate, chain });
+    }
     if (signal.aborted) return;
-    let risksDone = 0;
-    const l3 = (await streamLayer("/api/l3", { mint, reports, debate, chain }, signal, (type, d) => {
-      if (type === "agent_report" && typeof d.agent === "string") {
-        risksDone += 1;
-        dispatch({ type: "NOTE", note: `L3 risk review ${risksDone}/3 — ${d.agent} done` });
-      }
-    })) as unknown as L3Result;
-    risks = l3.risks;
-    chain = l3.chain;
-    if (!signal.aborted) dispatch({ type: "L3_OK", risks, chain });
+    if (from === "l1" || from === "l2" || from === "l3") {
+      if (!reports || !debate || !chain) throw new Error("Missing prior layer data");
+      let risksDone = 0;
+      const l3 = (await streamLayer("/api/l3", { mint, reports, debate, chain }, signal, (type, d) => {
+        if (type === "agent_report" && typeof d.agent === "string") {
+          risksDone += 1;
+          dispatch({ type: "NOTE", note: `L3 risk review ${risksDone}/3 — ${d.agent} done` });
+        }
+      })) as unknown as L3Result;
+      risks = l3.risks;
+      chain = l3.chain;
+      if (!signal.aborted) dispatch({ type: "L3_OK", risks, chain });
+    }
     if (signal.aborted) return;
     if (!token || !risks) throw new Error("Missing prior layer data");
     dispatch({ type: "NOTE", note: "L4 decider sealing verdict" });
@@ -130,10 +140,10 @@ export function useLayeredAnalysis() {
         if (controller.signal.aborted) return;
         const s = stateRef.current;
         const step: Step = s.step === "l1" || s.step === "l2" || s.step === "l3" || s.step === "l4" ? s.step : "l1";
-        dispatch({ type: "FAIL", step, message: err instanceof Error ? err.message : String(err) });
+        failRun(step, controller.signal, err);
       });
     },
-    [runFrom]
+    [runFrom, failRun]
   );
 
   const retry = useCallback(() => {
@@ -144,11 +154,8 @@ export function useLayeredAnalysis() {
     const step = s.failedStep;
     const seed: Seed = { mint: s.mint, chain: step === "l2" ? s.chains.l1 : step === "l3" ? s.chains.l2 : step === "l4" ? s.chains.l3 : undefined, token: s.token ?? undefined, symbol: s.symbol, reports: s.reports ?? undefined, debate: s.debate, risks: s.risks ?? undefined };
     dispatch({ type: "RETRY" });
-    void runFrom(step, seed, controller.signal).catch((err) => {
-      if (controller.signal.aborted) return;
-      dispatch({ type: "FAIL", step, message: err instanceof Error ? err.message : String(err) });
-    });
-  }, [runFrom]);
+    void runFrom(step, seed, controller.signal).catch((err) => failRun(step, controller.signal, err));
+  }, [runFrom, failRun]);
 
   const reset = useCallback(() => {
     abortRef.current?.abort();
