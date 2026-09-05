@@ -6,9 +6,10 @@ import AgentCard from "@/components/AgentCard";
 import DebateCard from "@/components/DebateCard";
 import DecisionCard from "@/components/DecisionCard";
 import { parseDecision } from "@/lib/decision";
+import { loadReport } from "@/lib/layered/supabase";
 import CopyThreadButton from "@/components/CopyThreadButton";
 
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 interface RunFile {
   token: {
@@ -20,6 +21,7 @@ interface RunFile {
   };
   reports: Record<string, string>;
   debate: { phase: string; round: number; side: string; text: string }[];
+  risks?: Record<string, string>;
   managerPlan: string;
   decision: string;
 }
@@ -55,7 +57,17 @@ export default async function ReportPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const run = loadRun(id);
+  const dbRow = await loadReport(id);
+  const run = dbRow
+    ? {
+        token: { name: dbRow.token.name, symbol: dbRow.token.symbol, price: dbRow.token.price, liquidity: dbRow.token.liquidity, change24h: dbRow.token.change24h },
+        reports: dbRow.reports,
+        debate: dbRow.debate,
+        risks: dbRow.risks,
+        managerPlan: "",
+        decision: dbRow.decision,
+      }
+    : loadRun(id);
   if (!run) notFound();
   const parsed = parseDecision(run.decision);
 
@@ -105,16 +117,18 @@ export default async function ReportPage({
           ))}
         </section>
 
-        <section className="flex flex-col gap-4">
-          <h2 className="text-base font-semibold">Trader proposal</h2>
-          <AgentCard
-            agent="trader"
-            status="done"
-            tools={[]}
-            results={[]}
-            report={run.reports["trader"] ?? null}
-          />
-        </section>
+        {run.reports["trader"] ? (
+          <section className="flex flex-col gap-4">
+            <h2 className="text-base font-semibold">Trader proposal</h2>
+            <AgentCard
+              agent="trader"
+              status="done"
+              tools={[]}
+              results={[]}
+              report={run.reports["trader"] ?? null}
+            />
+          </section>
+        ) : null}
 
         <section className="flex flex-col gap-4">
           <h2 className="text-base font-semibold">Debate</h2>
@@ -127,14 +141,32 @@ export default async function ReportPage({
               text={d.text}
             />
           ))}
-          <AgentCard
-            agent="Research Manager"
-            status="done"
-            tools={[]}
-            results={[]}
-            report={run.managerPlan}
-          />
+          {run.managerPlan ? (
+            <AgentCard
+              agent="Research Manager"
+              status="done"
+              tools={[]}
+              results={[]}
+              report={run.managerPlan}
+            />
+          ) : null}
         </section>
+
+        {run.risks ? (
+          <section className="flex flex-col gap-4">
+            <h2 className="text-base font-semibold">Risk review</h2>
+            {["liquidity", "rugpath", "concentration"].map((slot) => (
+              <AgentCard
+                key={slot}
+                agent={`risk:${slot}`}
+                status="done"
+                tools={[]}
+                results={[]}
+                report={run.risks?.[slot] ?? null}
+              />
+            ))}
+          </section>
+        ) : null}
       </main>
       <footer className="mt-6 w-full max-w-2xl border-t border-zinc-800 pt-4 text-xs leading-relaxed text-zinc-500">
         <p>
