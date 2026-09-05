@@ -6,8 +6,7 @@ const ORDER: (keyof L1Result["reports"])[] = ["onchain", "technical", "sentiment
 
 export default function AnalystsSection({ token, symbol, reports }: { token: L1Result["token"]; symbol: string; reports: L1Result["reports"] }) {
   return (
-    <section className="flex flex-col gap-3" aria-label="Analyst reports">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">L1 — Analysts (4/4)</h2>
+    <div className="flex flex-col gap-3" aria-label="Analyst reports">
       <TokenCard name={token.name} symbol={symbol} price={token.price} liquidity={token.liquidity} change24h={token.change24h} />
       <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {ORDER.map((key) => (
@@ -16,6 +15,6 @@ export default function AnalystsSection({ token, symbol, reports }: { token: L1R
           </div>
         ))}
       </div>
-    </section>
+    </div>
   );
 }

@@ -5,6 +5,7 @@
   --foreground: #e5e5e5;
   --bull: #22c55e;
   --bear: #ef4444;
+  scroll-behavior: smooth;
 }
 
 @theme inline {
@@ -104,6 +105,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  :root { scroll-behavior: auto; }
   .land-reveal { opacity: 1; transform: none; transition: none; }
   .land-sweep, .land-ring, .land-marquee, .land-caret { animation: none !important; }
   .land-marquee { width: 100%; flex-wrap: wrap; justify-content: center; }

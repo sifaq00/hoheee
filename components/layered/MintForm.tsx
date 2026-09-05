@@ -85,38 +85,44 @@ export default function MintForm({ disabled, onStart }: { disabled: boolean; onS
   return (
     <div className="flex flex-col gap-3">
       <section className="flex flex-col gap-3">
-        <label htmlFor="mint" className="text-sm text-zinc-400">
-          Token mint address
+        <label htmlFor="mint" className="font-mono text-[11px] tracking-[0.2em] text-zinc-500 uppercase">
+          target_mint //
         </label>
-        <input
-          id="mint"
-          type="text"
-          spellCheck={false}
-          autoComplete="off"
-          placeholder="Enter Solana mint address"
-          value={mint}
-          disabled={disabled}
-          onChange={(e) => {
-            setMint(e.target.value);
-            setTouched(true);
-            setPreviewStatus("none");
-            setPreview(null);
-            setPreviewError("");
-          }}
-          onBlur={() => {
-            if (valid) void fetchPreview(trimmed);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && valid) handleStart();
-          }}
-          className="w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-2 font-mono text-sm text-[#e5e5e5] placeholder:text-zinc-600 focus:border-[#22c55e] focus:outline-none disabled:opacity-50"
-        />
+        <div className="flex items-center gap-2 rounded border border-zinc-800 bg-zinc-950 px-3 focus-within:border-[#22c55e]">
+          <span aria-hidden="true" className="font-mono text-sm font-bold text-[#22c55e]">
+            &gt;
+          </span>
+          <input
+            id="mint"
+            type="text"
+            spellCheck={false}
+            autoComplete="off"
+            placeholder="paste solana mint, press enter"
+            value={mint}
+            disabled={disabled}
+            onChange={(e) => {
+              setMint(e.target.value);
+              setTouched(true);
+              setPreviewStatus("none");
+              setPreview(null);
+              setPreviewError("");
+            }}
+            onBlur={() => {
+              if (valid) void fetchPreview(trimmed);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && valid) handleStart();
+            }}
+            className="w-full bg-transparent py-2.5 font-mono text-sm text-[#e5e5e5] placeholder:text-zinc-600 focus:outline-none disabled:opacity-50"
+          />
+          {previewStatus === "loading" && <span aria-hidden="true" className="font-mono text-xs text-[#22c55e] animate-pulse">…</span>}
+        </div>
         {showValidationError && (
           <p role="alert" className="text-sm text-[#ef4444]">
             Invalid mint address: expected 32-44 base58 characters.
           </p>
         )}
-        {previewStatus === "loading" && <p className="text-sm text-zinc-400">Loading token preview…</p>}
+        {previewStatus === "loading" && <p className="font-mono text-xs text-zinc-400">resolving preview…</p>}
         {previewStatus === "not-found" && (
           <p role="alert" className="text-sm text-[#ef4444]">
             Token not found on DexScreener

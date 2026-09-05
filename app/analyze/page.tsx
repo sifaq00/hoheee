@@ -1,50 +1,70 @@
 "use client";
 
+import Link from "next/link";
 import { useLayeredAnalysis } from "@/hooks/useLayeredAnalysis";
 import { useWallet } from "@/context/WalletContext";
 import WalletButton from "@/components/WalletButton";
-import HistorySection from "@/components/layered/HistorySection";
 import MintForm from "@/components/layered/MintForm";
+import HistorySection from "@/components/layered/HistorySection";
 import AnalystsSection from "@/components/layered/AnalystsSection";
 import DebateSection from "@/components/layered/DebateSection";
 import RiskSection from "@/components/layered/RiskSection";
-import DecisionSection from "@/components/layered/DecisionSection";
+import VerdictBanner from "@/components/layered/VerdictBanner";
+import SectionPanel from "@/components/layered/SectionPanel";
 import type { LayeredState } from "@/lib/layered/reducer";
 
-const STEPS = ["l1", "l2", "l3", "l4"] as const;
-const LABELS: Record<(typeof STEPS)[number], string> = { l1: "Analysts", l2: "Debate", l3: "Risk", l4: "Decision" };
+const STEPS = [
+  { id: "l1", label: "SCOUTS", hint: "4 analysts" },
+  { id: "l2", label: "CLASH", hint: "bull vs bear" },
+  { id: "l3", label: "RISK", hint: "3 reviewers" },
+  { id: "l4", label: "VERDICT", hint: "decider" },
+] as const;
 
-function StepRail({ step }: { step: LayeredState["step"] }) {
-  const order = ["idle", "l1", "l2", "l3", "l4", "done"] as const;
-  const active = step === "error" ? -1 : order.indexOf(step === "done" ? "done" : step);
+const ORDER: LayeredState["step"][] = ["idle", "l1", "l2", "l3", "l4", "done"];
+
+function Timeline({ step, note }: { step: LayeredState["step"]; note: string | null }) {
+  const active = step === "error" ? -1 : ORDER.indexOf(step === "done" ? "done" : step);
   return (
-    <div aria-label="Pipeline steps" className="grid grid-cols-2 gap-3 rounded border border-zinc-800 bg-zinc-950 p-3 lg:grid-cols-4">
+    <ol aria-label="Pipeline progress" className="flex flex-col gap-0 rounded border border-white/10 bg-[#0c0f0c] p-4">
       {STEPS.map((s, i) => {
-        const done = active > i + 1 || step === "done";
-        const running = active === i + 1;
+        const idx = i + 1;
+        const done = active > idx || step === "done";
+        const running = active === idx;
         return (
-          <div key={s} className="flex min-w-0 items-center gap-2">
-            <span className={`font-mono text-sm ${done ? "text-[#22c55e]" : running ? "animate-pulse text-[#22c55e]" : "text-zinc-700"}`}>
-              {done ? "■" : running ? "▶" : "□"}
+          <li key={s.id} className="relative flex gap-3 pb-5 last:pb-0">
+            {i < STEPS.length - 1 && (
+              <span aria-hidden="true" className={`absolute top-6 left-[7px] h-[calc(100%-1.25rem)] w-px ${done ? "bg-[#22c55e]" : "bg-zinc-800"}`} />
+            )}
+            <span
+              aria-hidden="true"
+              className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[8px] ${
+                done
+                  ? "border-[#22c55e] bg-[#22c55e] text-black"
+                  : running
+                    ? "animate-pulse border-[#22c55e] bg-[#22c55e]/20 text-[#22c55e]"
+                    : "border-zinc-700 text-transparent"
+              }`}
+            >
+              ✓
             </span>
-            <span className="font-mono text-xs font-semibold tracking-wider text-zinc-300">{LABELS[s]}</span>
-          </div>
+            <div className="min-w-0">
+              <p className={`font-mono text-xs font-bold tracking-[0.18em] ${done || running ? "text-white" : "text-zinc-600"}`}>
+                {s.label} <span className="font-normal text-zinc-500">· {s.hint}</span>
+              </p>
+              {running && note && (
+                <p aria-live="polite" className="mt-0.5 truncate font-mono text-[11px] text-[#22c55e]">
+                  {note}…
+                </p>
+              )}
+            </div>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }
 
-function LiveNote({ note }: { note: string | null }) {
-  if (!note) return null;
-  return (
-    <p aria-live="polite" className="font-mono text-xs text-[#22c55e]">
-      {note}…
-    </p>
-  );
-}
-
-export default function Home() {
+export default function Analyze() {
   const { state, start, retry, reset } = useLayeredAnalysis();
   const { connected, address } = useWallet();
   const running = state.step === "l1" || state.step === "l2" || state.step === "l3" || state.step === "l4";
@@ -52,61 +72,96 @@ export default function Home() {
   const done = state.step === "done" && state.decision && state.shareId;
 
   return (
-    <div className="min-h-full flex flex-col items-center px-4 py-10">
-      <main className="w-full max-w-none flex flex-col gap-6">
-        <div className="w-full max-w-2xl mx-auto flex flex-col gap-6">
-          <header className="flex flex-col gap-2 border-b border-zinc-800 pb-4">
-            <div className="flex items-center justify-between gap-3">
-              <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight">
-                {/* eslint-disable-next-line @next/next/no-img-element -- static local webp, no optimizer needed */}
-                <img src="/logo.webp" alt="Aries logo" width={32} height={32} className="rounded" />
-                Aries <span className="text-[#22c55e]">—</span> Solana Token Research
-              </h1>
-              <WalletButton />
-            </div>
-            <p className="text-sm text-zinc-400">Research tool, not financial advice. Full run takes a few minutes.</p>
-          </header>
-
-          {!showFeed && <MintForm disabled={false} onStart={(mint) => start(mint, connected ? address : undefined)} />}
-          {!showFeed && connected && <HistorySection wallet={address} />}
-        </div>
-
-        {showFeed && (
-          <div className="flex flex-col gap-4" data-testid="analysis-feed">
-            {state.step === "error" && (
-              <div role="alert" className="rounded border border-[#ef4444] p-3 text-sm text-[#ef4444]">
-                <p>
-                  {state.failedStep ?? "run"} failed: {state.error}
-                </p>
-                <button type="button" onClick={retry} className="mt-2 rounded border border-[#ef4444] px-3 py-1 font-semibold hover:bg-[#ef4444] hover:text-black">
-                  Retry {state.failedStep}
-                </button>
-              </div>
+    <div className="min-h-full">
+      <div aria-hidden="true" className="land-grid pointer-events-none fixed inset-0" />
+      <div className="relative mx-auto max-w-5xl px-4 py-6">
+        <header className="flex flex-wrap items-center gap-3 border-b border-white/10 pb-4">
+          <Link href="/" className="flex cursor-pointer items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element -- static local webp */}
+            <img src="/logo.webp" alt="Aries logo" width={30} height={30} className="rounded" />
+            <span className="font-display text-sm font-bold tracking-[0.18em] text-white">ARIES</span>
+          </Link>
+          <span className="hidden font-mono text-[10px] tracking-[0.25em] text-zinc-600 uppercase sm:inline">/ TERMINAL</span>
+          <div className="ml-auto flex items-center gap-3">
+            {running && (
+              <span className="flex items-center gap-2 font-mono text-[10px] tracking-widest text-[#22c55e] uppercase">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#22c55e]" /> Live
+              </span>
             )}
-            <StepRail step={state.step} />
-            <LiveNote note={state.note} />
-            {done && <DecisionSection decision={state.decision!} shareId={state.shareId!} />}
-            {state.token && state.reports && <AnalystsSection token={state.token} symbol={state.symbol} reports={state.reports} />}
-            <DebateSection debate={state.debate} />
-            {state.risks && <RiskSection risks={state.risks} />}
-            <button
-              type="button"
-              onClick={reset}
-              className="rounded border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition-colors hover:border-[#22c55e] hover:text-[#22c55e]"
-            >
-              {state.step === "done" ? "New analysis" : "Cancel analysis"}
-            </button>
+            <WalletButton />
           </div>
-        )}
-      </main>
-      <footer className="mt-6 w-full border-t border-zinc-800 pt-4 text-xs leading-relaxed text-zinc-500">
-        <p>
-          Each full run takes a few minutes: 4 analysts, 2 debate rounds, risk review, decider. New tokens have thin data — low liquidity and
-          short history make signals unreliable. This system can be wrong: output is automated research, not financial advice. Each full run
-          costs real model tokens — runs are throttled per IP for the demo.
-        </p>
-        <p className="mt-2">Research background: &ldquo;TradingAgents: Multi-Agents LLM Financial Trading Framework&rdquo; (arXiv 2412.20138).</p>
-      </footer>
+        </header>
+
+        <main className="mt-6 flex flex-col gap-4">
+          {!showFeed && (
+            <>
+              <SectionPanel index="//" title="Target lock" meta="solana mainnet">
+                <MintForm disabled={false} onStart={(mint) => start(mint, connected ? address : undefined)} />
+              </SectionPanel>
+              {connected && (
+                <SectionPanel index="◈" title="Your reports" meta="this wallet">
+                  <HistorySection wallet={address} />
+                </SectionPanel>
+              )}
+            </>
+          )}
+
+          {showFeed && (
+            <div className="grid gap-4 lg:grid-cols-[240px_1fr]" data-testid="analysis-feed">
+              <div className="flex flex-col gap-4">
+                <Timeline step={state.step} note={state.note} />
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="cursor-pointer rounded border border-zinc-700 px-4 py-2 font-mono text-xs font-bold tracking-wider text-zinc-300 uppercase transition-colors hover:border-[#ef4444] hover:text-[#ef4444]"
+                >
+                  {state.step === "done" ? "New analysis" : "Abort run"}
+                </button>
+                {state.step === "error" && (
+                  <div role="alert" className="rounded border border-[#ef4444] p-3 text-sm text-[#ef4444]">
+                    <p className="font-mono text-xs">
+                      {(state.failedStep ?? "run").toUpperCase()} FAILED: {state.error}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={retry}
+                      className="mt-2 w-full cursor-pointer rounded border border-[#ef4444] px-3 py-1.5 font-mono text-xs font-bold tracking-wider uppercase hover:bg-[#ef4444] hover:text-black"
+                    >
+                      Retry {state.failedStep}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex min-w-0 flex-col gap-4">
+                {done && <VerdictBanner decision={state.decision!} shareId={state.shareId!} />}
+                {state.token && state.reports && (
+                  <SectionPanel index="L1" title="Scout reports" meta="4/4 parallel">
+                    <AnalystsSection token={state.token} symbol={state.symbol} reports={state.reports} />
+                  </SectionPanel>
+                )}
+                {state.debate.length > 0 && (
+                  <SectionPanel index="L2" title="Bull vs bear" meta={`${state.debate.length} turns`}>
+                    <DebateSection debate={state.debate} />
+                  </SectionPanel>
+                )}
+                {state.risks && (
+                  <SectionPanel index="L3" title="Risk review" meta="3/3 parallel">
+                    <RiskSection risks={state.risks} />
+                  </SectionPanel>
+                )}
+              </div>
+            </div>
+          )}
+        </main>
+
+        <footer className="mt-8 border-t border-white/10 pt-4 font-mono text-[11px] leading-relaxed text-zinc-500">
+          <p>
+            Full run: 4 analysts, 2 debate rounds, risk review, decider. Thin data → MISSING reports, lower confidence. Automated research, not
+            financial advice. Runs burn real model tokens — throttled per IP.
+          </p>
+        </footer>
+      </div>
     </div>
   );
 }
