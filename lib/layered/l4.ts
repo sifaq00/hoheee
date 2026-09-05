@@ -1,7 +1,8 @@
 import { MISSING_REPORT_RULE, formatReports, invokeWithRetry, type ReportsBundle } from "@/lib/agents/types";
+import type { ChainId } from "@/lib/chains";
+import { CHAINS, validateAddress } from "@/lib/chains";
 import { parseDecision } from "@/lib/decision";
 import type { ChatMessage } from "@/lib/llm";
-import { MINT_REGEX } from "@/lib/layered/validate";
 import { verifyChain } from "./chain";
 import { logEvent, saveReport } from "./supabase";
 import type { DebateTurn, L1Result, L3Result, L4Result } from "./types";
@@ -31,6 +32,7 @@ async function decideWithRetry(msgs: ChatMessage[], signal?: AbortSignal): Promi
 
 export async function runL4(
   input: {
+    chain: ChainId;
     mint: string;
     model?: string;
     wallet?: string;
@@ -39,12 +41,12 @@ export async function runL4(
     reports: ReportsBundle;
     debate: DebateTurn[];
     risks: L3Result["risks"];
-    chain: string;
+    chainToken: string;
   },
   opts: { signal?: AbortSignal } = {}
 ): Promise<L4Result> {
-  if (!MINT_REGEX.test(input.mint)) throw new Error("Invalid Solana mint address");
-  if (!verifyChain(input.chain, "l3", input.mint, input.risks)) throw new Error("Invalid layer chain");
+  if (!validateAddress(input.chain, input.mint)) throw new Error("Invalid address");
+  if (!verifyChain(input.chainToken, "l3", input.chain, input.mint, input.risks)) throw new Error("Invalid layer chain");
   const transcript = input.debate.map((d) => `${d.side} (round ${d.round}): ${d.text}`).join("\n\n") || "(no debate held)";
   const riskText = `liquidity: ${input.risks.liquidity}\nrugpath: ${input.risks.rugpath}\nconcentration: ${input.risks.concentration}`;
   const msgs: ChatMessage[] = [
@@ -52,6 +54,7 @@ export async function runL4(
     {
       role: "user",
       content:
+        `Network: ${CHAINS[input.chain].label}\n` +
         `Mini-reports:\n${formatReports(input.reports)}\n\n` +
         `Debate transcript:\n${transcript}\n\n` +
         `Risk review:\n${riskText}\n\n` +
@@ -66,6 +69,7 @@ export async function runL4(
   const { id } = await saveReport({
     mint: input.mint,
     model,
+    chain: input.chain,
     wallet: input.wallet ?? null,
     token: { name: input.token.name, price: Number(input.token.price) || 0, liquidity: input.token.liquidity, change24h: input.token.change24h, symbol: input.symbol },
     reports: { ...input.reports },

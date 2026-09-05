@@ -1,9 +1,10 @@
 import { runAnalyst } from "@/lib/agents/shared";
+import { CHAINS, validateAddress, type ChainId } from "@/lib/chains";
 import { MISSING_REPORT } from "@/lib/agents/types";
-import { MINT_REGEX, stripToolCallXml } from "@/lib/layered/validate";
+import { stripToolCallXml } from "@/lib/layered/validate";
 import type { AgentEvent, TokenSummary } from "@/lib/pipeline/state";
-import { getTokenSummary } from "@/lib/tools/dexscreener";
-import { ANALYST_TOOLS } from "@/lib/tools/index";
+import { getTokenSummaryFor } from "@/lib/tools/dexscreener";
+import { analystToolsFor } from "@/lib/tools/index";
 import { mintChain } from "./chain";
 import type { L1Result } from "./types";
 
@@ -18,16 +19,17 @@ const GUARD = " Output findings only: never emit <tool_call> blocks, planning no
 
 type Slot = keyof typeof ROLES;
 
-export async function runL1(mint: string, opts: { signal?: AbortSignal; emit?: (e: AgentEvent) => void } = {}): Promise<L1Result> {
-  if (!MINT_REGEX.test(mint)) throw new Error("Invalid Solana mint address");
+export async function runL1(chain: ChainId, mint: string, opts: { signal?: AbortSignal; emit?: (e: AgentEvent) => void } = {}): Promise<L1Result> {
+  if (!validateAddress(chain, mint)) throw new Error(chain === "solana" ? "Invalid Solana mint address" : "Invalid contract address");
   let summary: TokenSummary | null;
   try {
-    summary = await getTokenSummary(mint);
+    summary = await getTokenSummaryFor(chain, mint);
   } catch {
     throw new Error("data source unreachable");
   }
   if (!summary) throw new Error(`Token not found: ${mint}`);
   opts.emit?.({ type: "token_found", name: summary.name, symbol: summary.symbol, price: summary.priceUsd, liquidity: summary.liquidityUsd, change24h: summary.priceChange24h });
+  const tools = analystToolsFor(chain);
   const slots = Object.keys(ROLES) as Slot[];
   const settled = await Promise.allSettled(
     slots.map(async (agent, i) => {
@@ -45,9 +47,10 @@ export async function runL1(mint: string, opts: { signal?: AbortSignal; emit?: (
           const report = await runAnalyst({
             agent,
             mint,
+            chain,
             summary,
-            systemRole: ROLES[agent] + GUARD,
-            toolNames: ANALYST_TOOLS[agent],
+            systemRole: `${ROLES[agent]} Network: ${CHAINS[chain].label}.` + GUARD,
+            toolNames: tools[agent],
             cap: 1,
             maxTokens: 700,
             timeoutMs: 20000,
@@ -82,7 +85,7 @@ export async function runL1(mint: string, opts: { signal?: AbortSignal; emit?: (
     symbol: summary.symbol,
     reports,
     errors,
-    chain: mintChain("l1", mint, reports),
+    chain: mintChain("l1", chain, mint, reports),
   };
 }
 

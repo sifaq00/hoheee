@@ -6,10 +6,11 @@ import { runL3 } from "../lib/layered/l3";
 const MINT = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263";
 const DEBATE = [{ phase: "invest" as const, round: 1, side: "bull" as const, text: "up" }];
 const INPUT = {
+  chain: "solana" as const,
   mint: MINT,
   reports: { onchain: "o", technical: "t", sentiment: "s", news: "n" },
   debate: DEBATE,
-  chain: mintChain("l2", MINT, DEBATE),
+  chainToken: mintChain("l2", "solana", MINT, DEBATE),
 };
 
 beforeEach(() => {
@@ -30,7 +31,7 @@ describe("runL3", () => {
   });
 
   it("rejects invalid mint without any fetch", async () => {
-    await expect(runL3({ ...INPUT, mint: "xxx" })).rejects.toThrow("Invalid Solana mint address");
+    await expect(runL3({ ...INPUT, mint: "xxx" })).rejects.toThrow("Invalid address");
     expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(0);
   });
 

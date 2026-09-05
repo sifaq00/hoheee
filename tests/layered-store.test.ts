@@ -3,16 +3,18 @@ import { runL4 } from "../lib/layered/l4";
 import { mintChain } from "../lib/layered/chain";
 import { loadReport } from "../lib/layered/supabase";
 
+const MINT = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263";
 const RISKS = { liquidity: "thin", rugpath: "auth revoked", concentration: "whales" };
 const INPUT = {
-  mint: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+  chain: "solana" as const,
+  mint: MINT,
   model: "mimo-v2.5",
   token: { name: "Bonk", price: "0.00002", liquidity: 1000000, change24h: 5 },
   symbol: "BONK",
   reports: { onchain: "o", technical: "t", sentiment: "s", news: "n" },
   debate: [{ phase: "invest" as const, round: 1, side: "bull" as const, text: "up" }],
   risks: RISKS,
-  chain: mintChain("l3", "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", RISKS),
+  chainToken: mintChain("l3", "solana", MINT, RISKS),
 };
 
 beforeEach(() => {

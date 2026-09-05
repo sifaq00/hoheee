@@ -24,5 +24,7 @@ export function isChainId(v: unknown): v is ChainId {
 }
 
 export function validateAddress(chain: ChainId, mint: string): boolean {
-  return (CHAINS[chain].wallet === "evm" ? EVM_ADDR : SOL_ADDR).test(mint);
+  const def = (CHAINS as Record<string, ChainDef | undefined>)[chain];
+  if (!def || typeof mint !== "string") return false;
+  return (def.wallet === "evm" ? EVM_ADDR : SOL_ADDR).test(mint);
 }

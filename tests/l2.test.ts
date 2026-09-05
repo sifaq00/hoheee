@@ -5,6 +5,7 @@ import { MISSING_REPORT } from "../lib/agents/types";
 
 const MINT = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263";
 const REPORTS = { onchain: "o", technical: "t", sentiment: "s", news: "n" };
+const chainFor = (reports: typeof REPORTS) => mintChain("l1", "solana", MINT, reports);
 
 beforeEach(() => {
   vi.stubEnv("LLM_API_URL", "https://llm.test/v1/chat/completions");
@@ -19,7 +20,7 @@ beforeEach(() => {
 
 describe("runL2", () => {
   it("runs 2 rounds of bull then bear in order", async () => {
-    const res = await runL2({ mint: MINT, reports: REPORTS, rounds: 2, chain: mintChain("l1", MINT, REPORTS) });
+    const res = await runL2({ chain: "solana", mint: MINT, reports: REPORTS, rounds: 2, chainToken: chainFor(REPORTS) });
     expect(res.debate.map((d) => `${d.round}:${d.side}`)).toEqual(["1:bull", "1:bear", "2:bull", "2:bear"]);
     expect(res.errors).toEqual([]);
     expect(typeof res.chain).toBe("string");
@@ -33,12 +34,17 @@ describe("runL2", () => {
       return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: "ok" }, finish_reason: "stop" }] }) } as unknown as Response;
     }) as unknown as typeof fetch;
     const reports = { ...REPORTS, news: MISSING_REPORT };
-    const res = await runL2({ mint: MINT, reports, rounds: 1, chain: mintChain("l1", MINT, reports) });
+    const res = await runL2({ chain: "solana", mint: MINT, reports, rounds: 1, chainToken: chainFor(reports) });
     expect(res.debate).toHaveLength(1);
     expect(res.errors.map((e) => e.agent)).toEqual(["bear"]);
   });
 
   it("rejects forged chain without LLM spend", async () => {
-    await expect(runL2({ mint: MINT, reports: REPORTS, rounds: 1, chain: "forged" })).rejects.toThrow("Invalid layer chain");
+    await expect(runL2({ chain: "solana", mint: MINT, reports: REPORTS, rounds: 1, chainToken: "forged" })).rejects.toThrow("Invalid layer chain");
+  });
+
+  it("rejects mismatched address without LLM spend", async () => {
+    await expect(runL2({ chain: "ethereum", mint: MINT, reports: REPORTS, rounds: 1, chainToken: "x" })).rejects.toThrow("Invalid address");
+    expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(0);
   });
 });

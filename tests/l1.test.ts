@@ -21,14 +21,14 @@ beforeEach(() => {
 
 describe("runL1", () => {
   it("returns token plus 4 analyst reports", async () => {
-    const res = await runL1("DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263");
+    const res = await runL1("solana", "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263");
     expect(res.token.name).toBe("Bonk");
     expect(Object.keys(res.reports).sort()).toEqual(["news", "onchain", "sentiment", "technical"]);
     expect(res.errors).toEqual([]);
   }, 60000);
 
   it("rejects invalid mint without any fetch", async () => {
-    await expect(runL1("xxx")).rejects.toThrow("Invalid Solana mint address");
+    await expect(runL1("solana", "xxx")).rejects.toThrow("Invalid Solana mint address");
     expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(0);
   });
 
@@ -40,7 +40,7 @@ describe("runL1", () => {
       }
       throw new Error("socket hang up");
     }) as unknown as typeof fetch;
-    const res = await runL1("DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263");
+    const res = await runL1("solana", "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263");
     expect(res.errors).toHaveLength(4);
     expect(res.errors.every((e) => e.message.length > 0)).toBe(true);
   }, 60000);
@@ -53,9 +53,10 @@ describe("runL1", () => {
       }
       return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: "  " }, finish_reason: "stop" }] }) } as unknown as Response;
     }) as unknown as typeof fetch;
-    const res = await runL1("DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263");
+    const res = await runL1("solana", "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263");
     expect(Object.values(res.reports).every((r) => r.includes("REPORT UNAVAILABLE"))).toBe(true);
     expect(res.errors).toHaveLength(4);
     expect(res.errors[0].message).toBe("empty report");
   });
 });
+

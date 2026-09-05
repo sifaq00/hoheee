@@ -1,6 +1,7 @@
 export interface ReportRow {
   mint: string;
   model: string;
+  chain?: string | null;
   token: { name: string; price: number; liquidity: number; change24h: number; symbol: string };
   reports: Record<string, string>;
   debate: { phase: string; round: number; side: string; text: string }[];
