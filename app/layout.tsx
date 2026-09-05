@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: "Aries — Token Research",
   description: "Multi-agent token research. Not financial advice.",
-  icons: { icon: "/logo.webp", apple: "/logo.webp" },
+  icons: { icon: [{ url: "/favicon.ico" }, { url: "/logo.webp", type: "image/webp" }], apple: "/logo.webp" },
 };
 
 export const viewport: Viewport = {
