@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MISSING_REPORT } from "../lib/agents/types";
+import { mintChain } from "../lib/layered/chain";
 import { runL3 } from "../lib/layered/l3";
 
+const MINT = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263";
+const DEBATE = [{ phase: "invest" as const, round: 1, side: "bull" as const, text: "up" }];
 const INPUT = {
-  mint: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+  mint: MINT,
   reports: { onchain: "o", technical: "t", sentiment: "s", news: "n" },
-  debate: [{ phase: "invest" as const, round: 1, side: "bull" as const, text: "up" }],
+  debate: DEBATE,
+  chain: mintChain("l2", MINT, DEBATE),
 };
 
 beforeEach(() => {
@@ -22,6 +26,7 @@ describe("runL3", () => {
     const res = await runL3(INPUT);
     expect(Object.keys(res.risks).sort()).toEqual(["concentration", "liquidity", "rugpath"]);
     expect(res.errors).toEqual([]);
+    expect(typeof res.chain).toBe("string");
   });
 
   it("rejects invalid mint without any fetch", async () => {

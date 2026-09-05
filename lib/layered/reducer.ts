@@ -15,6 +15,7 @@ export interface LayeredState {
   failedStep: Exclude<LayerStep, "error" | "idle" | "done"> | null;
   error: string | null;
   note: string | null;
+  chains: { l1?: string; l2?: string; l3?: string };
 }
 
 export const initialLayeredState: LayeredState = {
@@ -30,13 +31,14 @@ export const initialLayeredState: LayeredState = {
   failedStep: null,
   error: null,
   note: null,
+  chains: {},
 };
 
 export type LayeredAction =
   | { type: "START"; mint: string }
-  | { type: "L1_OK"; token: L1Result["token"]; symbol: string; reports: L1Result["reports"] }
-  | { type: "L2_OK"; debate: DebateTurn[] }
-  | { type: "L3_OK"; risks: L3Result["risks"] }
+  | { type: "L1_OK"; token: L1Result["token"]; symbol: string; reports: L1Result["reports"]; chain: string }
+  | { type: "L2_OK"; debate: DebateTurn[]; chain: string }
+  | { type: "L3_OK"; risks: L3Result["risks"]; chain: string }
   | { type: "L4_OK"; decision: string; shareId: string }
   | { type: "FAIL"; step: NonNullable<LayeredState["failedStep"]>; message: string }
   | { type: "NOTE"; note: string }
@@ -49,12 +51,12 @@ export function layeredReducer(s: LayeredState, a: LayeredAction): LayeredState 
     case "START":
       return { ...initialLayeredState, step: "l1", mint: a.mint };
     case "L1_OK":
-      return { ...s, step: "l2", token: a.token, symbol: a.symbol, reports: a.reports, error: null, note: null };
+      return { ...s, step: "l2", token: a.token, symbol: a.symbol, reports: a.reports, error: null, note: null, chains: { l1: a.chain } };
     case "L2_OK":
       // Live turns already appended via L2_TURN; keep them to avoid doubles.
-      return { ...s, step: "l3", debate: s.debate.length > 0 ? s.debate : a.debate, error: null, note: null };
+      return { ...s, step: "l3", debate: s.debate.length > 0 ? s.debate : a.debate, error: null, note: null, chains: { ...s.chains, l2: a.chain } };
     case "L3_OK":
-      return { ...s, step: "l4", risks: a.risks, error: null, note: null };
+      return { ...s, step: "l4", risks: a.risks, error: null, note: null, chains: { ...s.chains, l3: a.chain } };
     case "L4_OK":
       return { ...s, step: "done", decision: a.decision, shareId: a.shareId, error: null, note: null };
     case "FAIL":

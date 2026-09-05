@@ -1,6 +1,6 @@
 import { runL1 } from "@/lib/layered/l1";
 import { sseResponse } from "@/lib/layered/sse";
-import { MINT_REGEX } from "@/lib/pipeline/orchestrator";
+import { MINT_REGEX } from "@/lib/layered/validate";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -47,3 +47,4 @@ export async function POST(req: Request) {
     }
   });
 }
+

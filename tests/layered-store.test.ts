@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { runL4 } from "../lib/layered/l4";
+import { mintChain } from "../lib/layered/chain";
 import { loadReport } from "../lib/layered/supabase";
 
+const RISKS = { liquidity: "thin", rugpath: "auth revoked", concentration: "whales" };
 const INPUT = {
   mint: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
   model: "mimo-v2.5",
@@ -9,7 +11,8 @@ const INPUT = {
   symbol: "BONK",
   reports: { onchain: "o", technical: "t", sentiment: "s", news: "n" },
   debate: [{ phase: "invest" as const, round: 1, side: "bull" as const, text: "up" }],
-  risks: { liquidity: "thin", rugpath: "auth revoked", concentration: "whales" },
+  risks: RISKS,
+  chain: mintChain("l3", "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", RISKS),
 };
 
 beforeEach(() => {

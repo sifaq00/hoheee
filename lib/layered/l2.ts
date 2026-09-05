@@ -1,6 +1,7 @@
 import { MISSING_REPORT_RULE, formatReports, invokeWithRetry, type ReportsBundle } from "@/lib/agents/types";
 import type { ChatMessage } from "@/lib/llm";
-import { MINT_REGEX } from "@/lib/pipeline/orchestrator";
+import { MINT_REGEX } from "@/lib/layered/validate";
+import { mintChain, verifyChain } from "./chain";
 import type { DebateTurn, L2Result } from "./types";
 
 export type DebateEmit = (turn: DebateTurn) => void;
@@ -9,17 +10,18 @@ const BULL_SYSTEM = "You are a Bull Analyst for a Solana token. Argue FOR invest
 const BEAR_SYSTEM = "You are a Bear Analyst for a Solana token. Argue AGAINST investing in max 150 words, citing only the mini-reports. No tools. English.";
 
 export async function runL2(
-  input: { mint: string; reports: ReportsBundle; rounds?: number },
+  input: { mint: string; reports: ReportsBundle; rounds?: number; chain: string },
   opts: { signal?: AbortSignal; emit?: DebateEmit } = {}
 ): Promise<L2Result> {
   if (!MINT_REGEX.test(input.mint)) throw new Error("Invalid Solana mint address");
+  if (!verifyChain(input.chain, "l1", input.mint, input.reports)) throw new Error("Invalid layer chain");
   const rounds = input.rounds ?? 2;
   const debate: DebateTurn[] = [];
   const errors: L2Result["errors"] = [];
   let transcript = "";
   for (let round = 1; round <= rounds; round++) {
     for (const side of ["bull", "bear"] as const) {
-      if (opts.signal?.aborted) return { debate, errors };
+      if (opts.signal?.aborted) return { debate, errors, chain: mintChain("l2", input.mint, debate) };
       const other = side === "bull" ? transcript || "(none yet)" : debate.filter((d) => d.side === "bull").map((d) => d.text).join("\n") || "(none yet)";
       const msgs: ChatMessage[] = [
         { role: "system", content: side === "bull" ? BULL_SYSTEM : BEAR_SYSTEM },
@@ -43,5 +45,6 @@ export async function runL2(
       }
     }
   }
-  return { debate, errors };
+  return { debate, errors, chain: mintChain("l2", input.mint, debate) };
 }
+

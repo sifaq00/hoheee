@@ -1,9 +1,10 @@
 import { runAnalyst } from "@/lib/agents/shared";
 import { MISSING_REPORT } from "@/lib/agents/types";
-import { MINT_REGEX, stripToolCallXml } from "@/lib/pipeline/orchestrator";
+import { MINT_REGEX, stripToolCallXml } from "@/lib/layered/validate";
 import type { AgentEvent, TokenSummary } from "@/lib/pipeline/state";
 import { getTokenSummary } from "@/lib/tools/dexscreener";
 import { ANALYST_TOOLS } from "@/lib/tools/index";
+import { mintChain } from "./chain";
 import type { L1Result } from "./types";
 
 const ROLES = {
@@ -61,5 +62,7 @@ export async function runL1(mint: string, opts: { signal?: AbortSignal; emit?: (
     symbol: summary.symbol,
     reports,
     errors,
+    chain: mintChain("l1", mint, reports),
   };
 }
+

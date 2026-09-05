@@ -9,9 +9,11 @@ describe("layeredReducer", () => {
       token: { name: "Bonk", price: "1", liquidity: 2, change24h: 3 },
       symbol: "BONK",
       reports: { onchain: "o", technical: "t", sentiment: "s", news: "n" },
+      chain: "c1",
     });
     expect(s1.step).toBe("l2");
     expect(s1.reports?.onchain).toBe("o");
+    expect(s1.chains.l1).toBe("c1");
   });
 
   it("keeps prior data on step error for retry", () => {
@@ -24,9 +26,9 @@ describe("layeredReducer", () => {
 
   it("walks L1..L4 to done preserving all data", () => {
     let s = layeredReducer(initialLayeredState, { type: "START", mint: "m" });
-    s = layeredReducer(s, { type: "L1_OK", token: { name: "B", price: "1", liquidity: 2, change24h: 3 }, symbol: "B", reports: { onchain: "o", technical: "t", sentiment: "s", news: "n" } });
-    s = layeredReducer(s, { type: "L2_OK", debate: [{ phase: "invest", round: 1, side: "bull", text: "up" }] });
-    s = layeredReducer(s, { type: "L3_OK", risks: { liquidity: "l", rugpath: "r", concentration: "c" } });
+    s = layeredReducer(s, { type: "L1_OK", token: { name: "B", price: "1", liquidity: 2, change24h: 3 }, symbol: "B", reports: { onchain: "o", technical: "t", sentiment: "s", news: "n" }, chain: "c1" });
+    s = layeredReducer(s, { type: "L2_OK", debate: [{ phase: "invest", round: 1, side: "bull", text: "up" }], chain: "c2" });
+    s = layeredReducer(s, { type: "L3_OK", risks: { liquidity: "l", rugpath: "r", concentration: "c" }, chain: "c3" });
     s = layeredReducer(s, { type: "L4_OK", decision: "RATING: Hold", shareId: "id-1" });
     expect(s.step).toBe("done");
     expect(s.shareId).toBe("id-1");
@@ -36,7 +38,7 @@ describe("layeredReducer", () => {
   it("appends live turns and keeps them on L2_OK without doubles", () => {
     let s: LayeredState = { ...initialLayeredState, step: "l2" };
     s = layeredReducer(s, { type: "L2_TURN", turn: { phase: "invest", round: 1, side: "bull", text: "up" } });
-    s = layeredReducer(s, { type: "L2_OK", debate: [{ phase: "invest", round: 1, side: "bull", text: "up" }] });
+    s = layeredReducer(s, { type: "L2_OK", debate: [{ phase: "invest", round: 1, side: "bull", text: "up" }], chain: "c2" });
     expect(s.step).toBe("l3");
     expect(s.debate).toHaveLength(1);
   });
@@ -52,7 +54,8 @@ describe("layeredReducer", () => {
     let s: LayeredState = { ...initialLayeredState, step: "l1" };
     s = layeredReducer(s, { type: "NOTE", note: "L1 analysts 1/4" });
     expect(s.note).toBe("L1 analysts 1/4");
-    s = layeredReducer(s, { type: "L1_OK", token: { name: "B", price: "1", liquidity: 2, change24h: 3 }, symbol: "B", reports: { onchain: "o", technical: "t", sentiment: "s", news: "n" } });
+    s = layeredReducer(s, { type: "L1_OK", token: { name: "B", price: "1", liquidity: 2, change24h: 3 }, symbol: "B", reports: { onchain: "o", technical: "t", sentiment: "s", news: "n" }, chain: "c1" });
     expect(s.note).toBeNull();
   });
 });
+

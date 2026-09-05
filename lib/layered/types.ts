@@ -8,6 +8,7 @@ export interface L1Result {
   symbol: string;
   reports: Record<"onchain" | "technical" | "sentiment" | "news", string>;
   errors: LayerError[];
+  chain: string;
 }
 
 export interface DebateTurn {
@@ -20,6 +21,7 @@ export interface DebateTurn {
 export interface L2Result {
   debate: DebateTurn[];
   errors: LayerError[];
+  chain: string;
 }
 
 export type RiskSlot = "liquidity" | "rugpath" | "concentration";
@@ -29,6 +31,7 @@ export const RISK_SLOTS: RiskSlot[] = ["liquidity", "rugpath", "concentration"];
 export interface L3Result {
   risks: Record<RiskSlot, string>;
   errors: LayerError[];
+  chain: string;
 }
 
 export interface L4Result {

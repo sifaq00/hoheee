@@ -1,7 +1,7 @@
 # Aries — Solana Token Research
 
-Stage-1 proof of concept: paste a Solana token mint address, get a multi-agent
-research report with a final trading decision. Research tool, not financial advice.
+Paste a Solana mint, get a multi-agent research report: 4 analysts, bull-vs-bear
+debate, risk review, final rating. Research tool, not financial advice.
 
 Research background: "TradingAgents: Multi-Agents LLM Financial Trading Framework" (arXiv 2412.20138).
 
@@ -19,6 +19,33 @@ Create `.env.local` in the repo root:
 LLM_API_URL=https://token-plan-sgp.xiaomimimo.com/v1/chat/completions
 LLM_API_KEY=<your-key>
 LLM_MODEL=mimo-v2.5
+NEXT_PUBLIC_SUPABASE_URL=<your-url>          # public read
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>     # public read
+SUPABASE_SERVICE_ROLE_KEY=<service-key>      # server-only write (never to browser)
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+CHAIN_SECRET=<random-32-chars>               # layer chain HMAC (any secret works locally)
+```
+
+Create table `reports` once (Supabase SQL editor or any postgres client):
+
+```sql
+create table reports (
+  id uuid primary key default gen_random_uuid(),
+  mint text not null,
+  model text not null,
+  token jsonb not null,
+  reports jsonb not null,
+  debate jsonb not null,
+  risks jsonb not null,
+  decision text not null,
+  rating text,
+  confidence text,
+  created_at timestamptz not null default now(),
+  wallet text,
+  views integer not null default 0
+);
+alter table reports enable row level security;
+create policy "public read" on reports for select using (true);
 ```
 
 Then start the dev server:
@@ -27,12 +54,13 @@ Then start the dev server:
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), paste a Solana mint
-address (32-44 base58 characters), check the token preview, and run the analysis.
+Open [http://localhost:3000](http://localhost:3000) (landing) or
+[http://localhost:3000/analyze](http://localhost:3000/analyze) (terminal),
+paste a Solana mint (32-44 base58 characters), and run.
 
 ## Architecture
 
-Text pipeline diagram — one run flows left to right:
+One run flows left to right:
 
 ```text
 mint → token summary (DexScreener)
@@ -43,94 +71,48 @@ mint → token summary (DexScreener)
   → saved to Supabase, share link /r/<id>
 ```
 
-Each layer is one JSON endpoint (`POST /api/l1` … `POST /api/l4`), chained
-by the browser, so every step stays far under the Vercel Hobby 300s ceiling
-(soft budgets: L1 <60s, L2 <90s, L3 <60s, L4 <30s). The legacy flash flow
-(`POST /api/analyze` SSE: `token_found → agent_start → tool_call →
-tool_result → agent_report → debate_turn → decision → done`) still exists
-but the UI now runs the layered flow.
+Each layer is one SSE endpoint (`POST /api/l1` … `POST /api/l4`), chained by
+the browser with an HMAC chain token (`CHAIN_SECRET`) so layers cannot be
+called out of order or forged — this also inherits the L1 rate limit
+(10 runs/hour/IP via Upstash, fail-open without env). Every step streams
+progress events plus a final `result` event. Soft budgets: L1 <60s, L2 <90s,
+L3 <60s, L4 <30s — far under the Vercel Hobby 300s ceiling.
 
-Supabase env (share links):
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL=<your-url>          # public read
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>     # public read
-SUPABASE_SERVICE_ROLE_KEY=<service-key>      # server-only write (never to browser)
-```
-
-Run once in the Supabase SQL editor (see
-`docs/superpowers/specs/2026-09-05-layered-pipeline-design.md` for the exact
-statement): create table `reports` with public-read RLS, no public insert.
-
-Key files: `lib/pipeline/orchestrator.ts` (legacy flash pipeline), `lib/layered/`
-(L1-L4 per-layer flow), `lib/agents/`
-(`runAnalyst` runtime + shared types), `lib/tools/` (dexscreener, rugcheck,
-coingecko fetchers + analyst tool lists), `app/api/l1/route.ts` through
-`app/api/l4/route.ts` (layered JSON endpoints), `app/api/analyze/route.ts`
-(legacy flash SSE framing), `app/page.tsx` + `components/layered/` + `hooks/`
-(live layered feed UI, one file per step).
+Key files: `lib/layered/` (L1-L4 flow, chain, SSE, Supabase, reducer),
+`lib/agents/` (`runAnalyst` runtime + shared types), `lib/tools/`
+(dexscreener, rugcheck, coingecko fetchers + analyst tool lists),
+`app/api/l1-l4/route.ts`, `app/api/history/route.ts`,
+`app/analyze/page.tsx` + `components/layered/` + `hooks/` (terminal UI, one
+file per step), `app/page.tsx` + `components/landing/` (landing).
+Old `runs/*.json` archives still render via file fallback on `/r/[id]`.
 
 ## Tests
 
 ```bash
-npm test                       # fast unit tests only (seconds)
-npm run test:e2e               # live e2e — needs dev server + ~1 minute
+npm test   # unit tests only (seconds, mocked LLM)
 ```
 
-The e2e test (`tests/e2e.test.ts`) posts a real mint to a running dev server
-and asserts the full SSE event chain plus a non-empty decision. It needs
-`npm run dev` on port 3000 first.
+Live end-to-end runs against `npm run dev` manually (burns real model
+tokens, ~2 minutes for BONK).
 
 ## Known Limits
 
-- **Vercel free 60s wall:** a run takes under a minute, inside the
-  serverless timeout. The analyze route is deployable to Vercel free tier.
-- **CoinGecko public-tier rate limits:** unauthenticated calls are throttled
-  (HTTP 429). Analysts may call CoinGecko concurrently, and each fetcher
-  degrades gracefully to an error string the analysts handle honestly.
-- **Reasoning-model latency:** first token can take minutes on the Mimo
-  endpoint; analyst reports stream incrementally and each stage waits on the
-  last. Long waits are normal, not hangs.
-- **Thin data for new tokens:** low liquidity and short price history make
-  signals unreliable. The system can be wrong — output is automated research,
-  not financial advice.
-
-## GitHub Actions Report Generation
-
-Reports generate in CI via manual dispatch — the laptop can stay off.
-
-1. Open the repo on GitHub → Actions → "Generate report" → Run workflow.
-2. Enter the `mint` input (Solana base58 address, 32-44 chars).
-3. The job runs `npx tsx scripts/generate-report.ts "<mint>"` (about a minute),
-   commits the new `runs/<runId>.json`, and pushes. The push triggers a Vercel
-   rebuild that pre-renders the new `/r/<runId>` page.
-
-Required repo secrets:
-
-| Secret        | Purpose                        |
-| ------------- | ------------------------------ |
-| `LLM_API_URL` | Chat-completions endpoint URL  |
-| `LLM_API_KEY` | API key for the LLM endpoint   |
-| `LLM_MODEL`   | Model name (e.g. mimo-v2.5)      |
-
-Secrets pass via env only and never print in logs. Do not add `[skip ci]` to
-the report commit message — Vercel skips such commits and auto-publish would
-silently break. `runs/*.json` files are committed on purpose (they are the
-CMS for the static report pages); never gitignore `runs/`.
+- **Vercel Hobby 300s ceiling:** every layer is far under it; the browser
+  chains them so total wall time can exceed it safely.
+- **CoinGecko public-tier rate limits:** unauthenticated calls throttle
+  (HTTP 429); fetchers degrade to error strings analysts handle honestly.
+- **Reasoning-model latency:** Vercel runs use fast `mimo-v2.5`; the pro
+  reasoning model stays local-only.
+- **Thin data for new tokens:** low liquidity and short history make signals
+  unreliable. Gaps render as MISSING with lower confidence.
+- **Wallet is demo-grade:** address from localStorage, history endpoint trusts
+  the query param. No signature auth — do not treat as identity.
 
 ## Vercel Deploy
 
-1. Connect the repo in the Vercel dashboard (framework preset: Next.js,
-   defaults for build `next build` and output).
-2. Add the same three env vars (`LLM_API_URL`, `LLM_API_KEY`, `LLM_MODEL`) if
-   the preview/token endpoints need them. No extra config required.
-3. Every push (including Actions report commits) rebuilds and publishes new
-   `/r/[id]` pages.
-
-## Live analysis (root)
-
-Enter a mint at `/`. `POST /api/analyze` streams the chain (mini
-analysts + 1 debate round + decider, `mimo-v2.5`) via SSE, under 45 seconds.
-Vercel env (Production): `LLM_API_URL`, `LLM_API_KEY`, `LLM_MODEL=mimo-v2.5`.
-Demo guardrails: ~12s per LLM call, 10 runs/hour/IP, partial failures
-continue as MISSING reports.
+1. Connect the repo (framework preset Next.js, defaults).
+2. Add env vars: `LLM_API_URL`, `LLM_API_KEY`, `LLM_MODEL=mimo-v2.5`,
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+   `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SITE_URL=https://<domain>`,
+   `CHAIN_SECRET=<random-32-chars>`. Upstash vars optional (rate limit).
+3. Every push rebuilds and publishes.

@@ -1,7 +1,8 @@
 import { MISSING_REPORT, MISSING_REPORT_RULE, formatReports, invokeWithRetry, type ReportsBundle } from "@/lib/agents/types";
-import { MINT_REGEX } from "@/lib/pipeline/orchestrator";
+import { MINT_REGEX } from "@/lib/layered/validate";
 import type { ChatMessage } from "@/lib/llm";
 import { RISK_SLOTS, type DebateTurn, type L3Result, type RiskSlot } from "./types";
+import { mintChain, verifyChain } from "./chain";
 
 const RISK_SYSTEM: Record<RiskSlot, string> = {
   liquidity: "You are the liquidity-risk reviewer for a Solana token. In max 120 words: how thin is liquidity, expected slippage on exit, pool concentration. Cite mini-reports and debate only. No tools. English.",
@@ -10,10 +11,11 @@ const RISK_SYSTEM: Record<RiskSlot, string> = {
 };
 
 export async function runL3(
-  input: { mint: string; reports: ReportsBundle; debate: DebateTurn[] },
+  input: { mint: string; reports: ReportsBundle; debate: DebateTurn[]; chain: string },
   opts: { signal?: AbortSignal; emit?: (agent: string, report: string) => void } = {}
 ): Promise<L3Result> {
   if (!MINT_REGEX.test(input.mint)) throw new Error("Invalid Solana mint address");
+  if (!verifyChain(input.chain, "l2", input.mint, input.debate)) throw new Error("Invalid layer chain");
   const transcript = input.debate.map((d) => `${d.side} (round ${d.round}): ${d.text}`).join("\n\n") || "(no debate held)";
   const settled = await Promise.allSettled(
     RISK_SLOTS.map(async (slot) => {
@@ -41,5 +43,6 @@ export async function runL3(
       errors.push({ agent: `risk:${RISK_SLOTS[i]}`, message: r.reason instanceof Error ? r.reason.message : String(r.reason) });
     }
   });
-  return { risks, errors };
+  return { risks, errors, chain: mintChain("l3", input.mint, risks) };
 }
+

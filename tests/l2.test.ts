@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { runL2 } from "../lib/layered/l2";
+import { mintChain } from "../lib/layered/chain";
 import { MISSING_REPORT } from "../lib/agents/types";
 
 const MINT = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263";
@@ -18,9 +19,10 @@ beforeEach(() => {
 
 describe("runL2", () => {
   it("runs 2 rounds of bull then bear in order", async () => {
-    const res = await runL2({ mint: MINT, reports: REPORTS, rounds: 2 });
+    const res = await runL2({ mint: MINT, reports: REPORTS, rounds: 2, chain: mintChain("l1", MINT, REPORTS) });
     expect(res.debate.map((d) => `${d.round}:${d.side}`)).toEqual(["1:bull", "1:bear", "2:bull", "2:bear"]);
     expect(res.errors).toEqual([]);
+    expect(typeof res.chain).toBe("string");
   });
 
   it("marks MISSING reports honestly and continues when one side fails", async () => {
@@ -30,8 +32,13 @@ describe("runL2", () => {
       if (calls >= 2 && calls <= 5) throw new Error("boom");
       return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: "ok" }, finish_reason: "stop" }] }) } as unknown as Response;
     }) as unknown as typeof fetch;
-    const res = await runL2({ mint: MINT, reports: { ...REPORTS, news: MISSING_REPORT }, rounds: 1 });
+    const reports = { ...REPORTS, news: MISSING_REPORT };
+    const res = await runL2({ mint: MINT, reports, rounds: 1, chain: mintChain("l1", MINT, reports) });
     expect(res.debate).toHaveLength(1);
     expect(res.errors.map((e) => e.agent)).toEqual(["bear"]);
+  });
+
+  it("rejects forged chain without LLM spend", async () => {
+    await expect(runL2({ mint: MINT, reports: REPORTS, rounds: 1, chain: "forged" })).rejects.toThrow("Invalid layer chain");
   });
 });

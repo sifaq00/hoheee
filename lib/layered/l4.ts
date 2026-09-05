@@ -1,7 +1,8 @@
 import { MISSING_REPORT_RULE, formatReports, invokeWithRetry, type ReportsBundle } from "@/lib/agents/types";
 import { parseDecision } from "@/lib/decision";
 import type { ChatMessage } from "@/lib/llm";
-import { MINT_REGEX } from "@/lib/pipeline/orchestrator";
+import { MINT_REGEX } from "@/lib/layered/validate";
+import { verifyChain } from "./chain";
 import { saveReport } from "./supabase";
 import type { DebateTurn, L1Result, L3Result, L4Result } from "./types";
 
@@ -27,10 +28,12 @@ export async function runL4(
     reports: ReportsBundle;
     debate: DebateTurn[];
     risks: L3Result["risks"];
+    chain: string;
   },
   opts: { signal?: AbortSignal } = {}
 ): Promise<L4Result> {
   if (!MINT_REGEX.test(input.mint)) throw new Error("Invalid Solana mint address");
+  if (!verifyChain(input.chain, "l3", input.mint, input.risks)) throw new Error("Invalid layer chain");
   const transcript = input.debate.map((d) => `${d.side} (round ${d.round}): ${d.text}`).join("\n\n") || "(no debate held)";
   const riskText = `liquidity: ${input.risks.liquidity}\nrugpath: ${input.risks.rugpath}\nconcentration: ${input.risks.concentration}`;
   const msgs: ChatMessage[] = [
@@ -63,3 +66,4 @@ export async function runL4(
   });
   return { decision, rating: parsed.rating, confidence: parsed.confidence, id };
 }
+
