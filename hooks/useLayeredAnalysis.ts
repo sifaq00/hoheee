@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useReducer, useRef } from "react";
+import { streamSSE } from "@/lib/client/sse";
 import { initialLayeredState, layeredReducer, type LayeredState } from "@/lib/layered/reducer";
 import type { L1Result, L2Result, L3Result, L4Result } from "@/lib/layered/types";
 
@@ -29,16 +30,31 @@ interface Seed {
   risks?: L3Result["risks"];
 }
 
-async function postJson(url: string, body: unknown, signal: AbortSignal): Promise<Record<string, unknown>> {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal,
-  });
-  const data = (await res.json().catch(() => null)) as { error?: string } | Record<string, unknown> | null;
-  if (!res.ok) throw new Error((data as { error?: string } | null)?.error ?? `Request failed: ${res.status}`);
-  return (data ?? {}) as Record<string, unknown>;
+async function streamLayer(
+  url: string,
+  body: unknown,
+  signal: AbortSignal,
+  onEvent: (type: string, data: Record<string, unknown>) => void
+): Promise<Record<string, unknown>> {
+  let result: Record<string, unknown> | null = null;
+  let failure: string | null = null;
+  await streamSSE(url, body as Record<string, unknown>, (type, data) => {
+    const d = data as Record<string, unknown>;
+    if (type === "result") {
+      if (typeof d.error === "string") failure = d.error;
+      else result = (d.result ?? {}) as Record<string, unknown>;
+      return;
+    }
+    if (type === "error" && typeof d.message === "string") {
+      failure = d.message;
+      return;
+    }
+    if (type === "done") return;
+    onEvent(type, d);
+  }, signal);
+  if (failure) throw new Error(failure);
+  if (!result) throw new Error("Stream ended without result");
+  return result;
 }
 
 export function useLayeredAnalysis() {
@@ -53,7 +69,15 @@ export function useLayeredAnalysis() {
     const mint = seed.mint;
     let { token, symbol, reports, debate, risks } = seed;
     if (from === "l1") {
-      const l1 = (await postJson("/api/l1", { mint }, signal)) as unknown as L1Result;
+      let done = 0;
+      const l1 = (await streamLayer("/api/l1", { mint }, signal, (type, d) => {
+        if (type === "agent_report" && typeof d.agent === "string") {
+          done += 1;
+          dispatch({ type: "NOTE", note: `L1 analysts ${done}/4 — ${d.agent} done` });
+        } else if (type === "token_found" && typeof d.name === "string") {
+          dispatch({ type: "NOTE", note: `Found ${d.name}, scouts running` });
+        }
+      })) as unknown as L1Result;
       token = l1.token;
       symbol = l1.symbol;
       reports = l1.reports;
@@ -61,19 +85,31 @@ export function useLayeredAnalysis() {
     }
     if (signal.aborted) return;
     if (!reports) throw new Error("Missing L1 reports");
-    const l2 = (await postJson("/api/l2", { mint, reports, rounds: 2 }, signal)) as unknown as L2Result;
+    const l2 = (await streamLayer("/api/l2", { mint, reports, rounds: 2 }, signal, (type, d) => {
+      if (type === "debate_turn" && typeof d.side === "string" && typeof d.text === "string") {
+        dispatch({ type: "L2_TURN", turn: { phase: "invest", round: Number(d.round) || 0, side: d.side as "bull" | "bear", text: d.text } });
+      }
+    })) as unknown as L2Result;
     debate = l2.debate;
     if (!signal.aborted) dispatch({ type: "L2_OK", debate });
     if (signal.aborted) return;
-    const l3 = (await postJson("/api/l3", { mint, reports, debate }, signal)) as unknown as L3Result;
+    let risksDone = 0;
+    const l3 = (await streamLayer("/api/l3", { mint, reports, debate }, signal, (type, d) => {
+      if (type === "agent_report" && typeof d.agent === "string") {
+        risksDone += 1;
+        dispatch({ type: "NOTE", note: `L3 risk review ${risksDone}/3 — ${d.agent} done` });
+      }
+    })) as unknown as L3Result;
     risks = l3.risks;
     if (!signal.aborted) dispatch({ type: "L3_OK", risks });
     if (signal.aborted) return;
     if (!token || !risks) throw new Error("Missing prior layer data");
-    const l4 = (await postJson(
+    dispatch({ type: "NOTE", note: "L4 decider sealing verdict" });
+    const l4 = (await streamLayer(
       "/api/l4",
       { mint, token, symbol: symbol ?? "", reports, debate, risks },
-      signal
+      signal,
+      () => undefined
     )) as unknown as L4Result;
     if (!signal.aborted) dispatch({ type: "L4_OK", decision: l4.decision, shareId: l4.id });
   }, []);

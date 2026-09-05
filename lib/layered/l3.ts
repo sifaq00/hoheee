@@ -11,12 +11,12 @@ const RISK_SYSTEM: Record<RiskSlot, string> = {
 
 export async function runL3(
   input: { mint: string; reports: ReportsBundle; debate: DebateTurn[] },
-  opts: { signal?: AbortSignal } = {}
+  opts: { signal?: AbortSignal; emit?: (agent: string, report: string) => void } = {}
 ): Promise<L3Result> {
   if (!MINT_REGEX.test(input.mint)) throw new Error("Invalid Solana mint address");
   const transcript = input.debate.map((d) => `${d.side} (round ${d.round}): ${d.text}`).join("\n\n") || "(no debate held)";
   const settled = await Promise.allSettled(
-    RISK_SLOTS.map((slot) => {
+    RISK_SLOTS.map(async (slot) => {
       const msgs: ChatMessage[] = [
         { role: "system", content: RISK_SYSTEM[slot] },
         {
@@ -27,7 +27,9 @@ export async function runL3(
             `${MISSING_REPORT_RULE}`,
         },
       ];
-      return invokeWithRetry(msgs, { maxTokens: 500, timeoutMs: 12000, signal: opts.signal });
+      const report = await invokeWithRetry(msgs, { maxTokens: 500, timeoutMs: 12000, signal: opts.signal });
+      opts.emit?.(`risk:${slot}`, report);
+      return report;
     })
   );
   const risks = {} as L3Result["risks"];

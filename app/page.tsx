@@ -32,6 +32,15 @@ function StepRail({ step }: { step: LayeredState["step"] }) {
   );
 }
 
+function LiveNote({ note }: { note: string | null }) {
+  if (!note) return null;
+  return (
+    <p aria-live="polite" className="font-mono text-xs text-[#22c55e]">
+      {note}…
+    </p>
+  );
+}
+
 export default function Home() {
   const { state, start, retry, reset } = useLayeredAnalysis();
   const running = state.step === "l1" || state.step === "l2" || state.step === "l3" || state.step === "l4";
@@ -64,6 +73,7 @@ export default function Home() {
               </div>
             )}
             <StepRail step={state.step} />
+            <LiveNote note={state.note} />
             {state.token && state.reports && <AnalystsSection token={state.token} symbol={state.symbol} reports={state.reports} />}
             <DebateSection debate={state.debate} />
             {state.risks && <RiskSection risks={state.risks} />}

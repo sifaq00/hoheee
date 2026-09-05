@@ -1,4 +1,5 @@
 import { runL2 } from "@/lib/layered/l2";
+import { sseResponse } from "@/lib/layered/sse";
 import { MINT_REGEX } from "@/lib/pipeline/orchestrator";
 
 export const dynamic = "force-dynamic";
@@ -20,9 +21,15 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid reports bundle" }, { status: 400 });
   }
   const r = typeof rounds === "number" && rounds >= 1 && rounds <= 3 ? Math.floor(rounds) : 2;
-  try {
-    return Response.json(await runL2({ mint, reports: reports as Record<(typeof slots)[number], string>, rounds: r }, { signal: req.signal }));
-  } catch (err) {
-    return Response.json({ error: err instanceof Error ? err.message : String(err) }, { status: 502 });
-  }
+  return sseResponse(async (emit) => {
+    try {
+      const result = await runL2(
+        { mint, reports: reports as Record<(typeof slots)[number], string>, rounds: r },
+        { signal: req.signal, emit: (turn) => emit({ type: "debate_turn", ...turn }) }
+      );
+      emit({ type: "result", result });
+    } catch (err) {
+      emit({ type: "result", error: err instanceof Error ? err.message : String(err) });
+    }
+  });
 }

@@ -1,4 +1,5 @@
 import { runL3 } from "@/lib/layered/l3";
+import { sseResponse } from "@/lib/layered/sse";
 import { MINT_REGEX } from "@/lib/pipeline/orchestrator";
 
 export const dynamic = "force-dynamic";
@@ -22,14 +23,15 @@ export async function POST(req: Request) {
   if (!Array.isArray(debate) || !debate.every((d) => d && typeof (d as { text?: unknown }).text === "string")) {
     return Response.json({ error: "Invalid debate" }, { status: 400 });
   }
-  try {
-    return Response.json(
-      await runL3(
+  return sseResponse(async (emit) => {
+    try {
+      const result = await runL3(
         { mint, reports: reports as Record<(typeof slots)[number], string>, debate: debate as { phase: "invest"; round: number; side: "bull" | "bear"; text: string }[] },
-        { signal: req.signal }
-      )
-    );
-  } catch (err) {
-    return Response.json({ error: err instanceof Error ? err.message : String(err) }, { status: 502 });
-  }
+        { signal: req.signal, emit: (agent, report) => emit({ type: "agent_report", agent, report }) }
+      );
+      emit({ type: "result", result });
+    } catch (err) {
+      emit({ type: "result", error: err instanceof Error ? err.message : String(err) });
+    }
+  });
 }

@@ -1,4 +1,5 @@
 import { runL1 } from "@/lib/layered/l1";
+import { sseResponse } from "@/lib/layered/sse";
 import { MINT_REGEX } from "@/lib/pipeline/orchestrator";
 
 export const dynamic = "force-dynamic";
@@ -37,11 +38,12 @@ export async function POST(req: Request) {
   if (await rateLimited(req)) {
     return Response.json({ error: "Demo limit: 10 runs per hour per IP" }, { status: 429 });
   }
-  try {
-    return Response.json(await runL1(mint, { signal: req.signal }));
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    const status = msg.startsWith("Token not found") ? 404 : 502;
-    return Response.json({ error: msg }, { status });
-  }
+  return sseResponse(async (emit) => {
+    try {
+      const result = await runL1(mint, { signal: req.signal, emit: (e) => emit({ ...e }) });
+      emit({ type: "result", result });
+    } catch (err) {
+      emit({ type: "result", error: err instanceof Error ? err.message : String(err) });
+    }
+  });
 }

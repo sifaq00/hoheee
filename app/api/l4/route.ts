@@ -1,4 +1,5 @@
 import { runL4 } from "@/lib/layered/l4";
+import { sseResponse } from "@/lib/layered/sse";
 import { MINT_REGEX } from "@/lib/pipeline/orchestrator";
 
 export const dynamic = "force-dynamic";
@@ -30,9 +31,9 @@ export async function POST(req: Request) {
   if (!risks || typeof risks !== "object" || !RISK_SLOTS.every((s) => typeof (risks as Record<string, unknown>)[s] === "string")) {
     return Response.json({ error: "Invalid risks" }, { status: 400 });
   }
-  try {
-    return Response.json(
-      await runL4(
+  return sseResponse(async (emit) => {
+    try {
+      const result = await runL4(
         {
           mint,
           token: token as { name: string; price: string; liquidity: number; change24h: number },
@@ -42,9 +43,10 @@ export async function POST(req: Request) {
           risks: risks as Record<(typeof RISK_SLOTS)[number], string>,
         },
         { signal: req.signal }
-      )
-    );
-  } catch (err) {
-    return Response.json({ error: err instanceof Error ? err.message : String(err) }, { status: 502 });
-  }
+      );
+      emit({ type: "result", result });
+    } catch (err) {
+      emit({ type: "result", error: err instanceof Error ? err.message : String(err) });
+    }
+  });
 }
