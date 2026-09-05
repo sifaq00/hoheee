@@ -162,17 +162,22 @@ body {
   width: var(--s);
   height: var(--s);
   margin-left: calc(var(--s) / -2);
-  transform: translateZ(calc(var(--z, 0) * var(--step)));
+  transform: translateX(0) translateZ(calc(var(--z, 0) * var(--step)));
   transform-style: preserve-3d;
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
-  transition: transform 0.35s cubic-bezier(0.3, 1.18, 0.4, 1);
+  will-change: transform;
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .iso-slab:hover, .iso-slab:focus-visible {
   transform: translateX(18px) translateZ(calc(var(--z, 0) * var(--step)));
+}
+
+.iso-top, .iso-face {
+  transition: background 0.4s ease, border-color 0.4s ease, color 0.4s ease;
 }
 
 .iso-slab:focus-visible {

@@ -26,6 +26,7 @@ export default function LayerStack() {
               role="tab"
               aria-selected={on}
               onClick={() => setSel(i)}
+              onMouseEnter={() => setSel(i)}
               onFocus={() => setSel(i)}
               className={`iso-slab ${on ? "iso-on" : ""}`}
               style={{ "--z": LAYERS.length - 1 - i } as CSSProperties}
