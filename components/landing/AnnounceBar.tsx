@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 
 const KEY = "aries-announce";
 
-export const ANNOUNCE_EVENT = "aries:announce";
-
 function isDismissed(): boolean {
   try {
     return sessionStorage.getItem(KEY) === "closed";
@@ -22,10 +20,8 @@ export default function AnnounceBar() {
   // and rendering open on first client paint would mismatch SSR HTML.
   /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration from sessionStorage */
   useEffect(() => {
-    const shut = isDismissed();
-    setClosed(shut);
+    setClosed(isDismissed());
     setReady(true);
-    window.dispatchEvent(new CustomEvent(ANNOUNCE_EVENT, { detail: { open: !shut } }));
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -38,11 +34,10 @@ export default function AnnounceBar() {
     } catch {
       // ignore
     }
-    window.dispatchEvent(new CustomEvent(ANNOUNCE_EVENT, { detail: { open: false } }));
   };
 
   return (
-    <div className="fixed inset-x-0 top-0 z-[60] flex h-10 items-center justify-center gap-3 bg-[#22c55e] px-12 text-black">
+    <div className="flex h-10 items-center justify-center gap-3 bg-[#22c55e] px-12 text-black">
       <a href="/analyze" className="flex min-w-0 cursor-pointer items-center gap-2 font-mono text-xs font-bold">
         <span className="hidden rounded bg-black px-1.5 py-0.5 text-[9px] tracking-[0.12em] text-[#22c55e] uppercase sm:inline">Live</span>
         <span className="truncate">

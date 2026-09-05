@@ -13,7 +13,7 @@ import Footer from "@/components/landing/Footer";
 
 export default function Landing() {
   return (
-    <div className="min-h-full bg-white pt-10 text-zinc-900">
+    <div className="min-h-full bg-white text-zinc-900">
       <AnnounceBar />
       <Navbar />
       <main>
