@@ -37,4 +37,18 @@ describe("runL3", () => {
     expect(Object.values(res.risks).every((v) => v === MISSING_REPORT)).toBe(true);
     expect(res.errors.length).toBe(3);
   });
+
+  it("returns MISSING_REPORT for failed slot only when one LLM call fails", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(async (_url: unknown, init: { body?: unknown }) => {
+      const body = JSON.parse(init.body as string) as { messages: { content: string }[] };
+      if (body.messages[0].content.includes("liquidity-risk")) throw new Error("slot down");
+      return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: "risk note." }, finish_reason: "stop" }] }) } as unknown as Response;
+    });
+    const res = await runL3(INPUT);
+    expect(res.risks.liquidity).toBe(MISSING_REPORT);
+    expect(res.risks.concentration).toBe("risk note.");
+    expect(res.risks.rugpath).toBe("risk note.");
+    expect(res.errors.length).toBe(1);
+    expect(res.errors[0].agent).toBe("risk:liquidity");
+  });
 });
