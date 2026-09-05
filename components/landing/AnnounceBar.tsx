@@ -1,20 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const KEY = "aries-announce";
 
 export default function AnnounceBar() {
-  const [closed, setClosed] = useState(() => {
-    if (typeof window === "undefined") return true;
-    try {
-      return localStorage.getItem(KEY) === "closed";
-    } catch {
-      return false;
-    }
-  });
+  const [closed, setClosed] = useState(true);
+  const [ready, setReady] = useState(false);
 
-  if (closed) return null;
+  // Read persisted dismissal only after mount: server has no localStorage,
+  // and rendering open on first client paint would mismatch SSR HTML.
+  /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration from localStorage */
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(KEY) !== "closed") setClosed(false);
+    } catch {
+      setClosed(false);
+    }
+    setReady(true);
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  if (!ready || closed) return null;
 
   const dismiss = () => {
     setClosed(true);
