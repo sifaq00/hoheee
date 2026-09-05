@@ -38,6 +38,21 @@ describe("runL4", () => {
     expect(res.id).toBe("11111111-1111-4111-8111-111111111111");
   });
 
+  it("retries once when decider returns blank, then succeeds", async () => {
+    let calls = 0;
+    global.fetch = vi.fn(async (url: unknown) => {
+      const u = String(url);
+      if (u.includes("db.test")) {
+        return { ok: true, status: 201, json: async () => [{ id: "11111111-1111-4111-8111-111111111111" }] } as unknown as Response;
+      }
+      calls += 1;
+      const content = calls === 1 ? "   " : "RATING: Hold\nCONFIDENCE: Medium\nKEY RISKS:\n- thin\nEXECUTIVE SUMMARY\nok\nINVESTMENT THESIS\nfair";
+      return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content }, finish_reason: "stop" }] }) } as unknown as Response;
+    }) as unknown as typeof fetch;
+    const res = await runL4(INPUT);
+    expect(res.rating).toBe("Hold");
+  });
+
   it("throws honest error without saving when decider is empty", async () => {
     global.fetch = vi.fn(async (url: unknown) => {
       const u = String(url);

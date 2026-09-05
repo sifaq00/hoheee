@@ -18,6 +18,17 @@ const DECIDER_STRUCTURE =
   "INVESTMENT THESIS\n" +
   "<concise reasoning>";
 
+// Blank completions happen (model hiccup); one content-level retry before giving up.
+async function decideWithRetry(msgs: ChatMessage[], signal?: AbortSignal): Promise<string> {
+  let last = "";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (signal?.aborted) break;
+    last = await invokeWithRetry(msgs, { maxTokens: 1000, timeoutMs: 15000, signal });
+    if (last.trim()) return last;
+  }
+  return last;
+}
+
 export async function runL4(
   input: {
     mint: string;
@@ -48,7 +59,7 @@ export async function runL4(
         DECIDER_STRUCTURE,
     },
   ];
-  const decision = await invokeWithRetry(msgs, { maxTokens: 1000, timeoutMs: 15000, signal: opts.signal });
+  const decision = await decideWithRetry(msgs, opts.signal);
   if (!decision.trim()) throw new Error("empty decision");
   const parsed = parseDecision(decision);
   const model = input.model ?? process.env.LLM_MODEL ?? "unknown";
