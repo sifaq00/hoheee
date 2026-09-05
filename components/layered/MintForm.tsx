@@ -18,12 +18,13 @@ export default function MintForm({ disabled, onStart }: { disabled: boolean; onS
   const [preview, setPreview] = useState<TokenPreview | null>(null);
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>("none");
   const [previewError, setPreviewError] = useState("");
-  const [starting, setStarting] = useState(false);
   const requestId = useRef(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const trimmed = mint.trim();
   const valid = MINT_REGEX.test(trimmed);
   const showValidationError = touched && trimmed.length > 0 && !valid;
+  const canRun = valid && !disabled && previewStatus === "ok" && preview !== null;
 
   const fetchPreview = useCallback(async (value: string): Promise<boolean> => {
     const id = ++requestId.current;
@@ -58,24 +59,20 @@ export default function MintForm({ disabled, onStart }: { disabled: boolean; onS
 
   useEffect(() => {
     if (!valid || disabled) return;
-    const timer = setTimeout(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
       void fetchPreview(trimmed);
     }, 500);
-    return () => clearTimeout(timer);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [trimmed, valid, disabled, fetchPreview]);
 
   const handleStart = useCallback(() => {
-    if (!valid || disabled) return;
-    if (previewStatus === "ok" && preview) {
-      onStart(trimmed);
-      return;
-    }
-    setStarting(true);
-    void fetchPreview(trimmed).then((ok) => {
-      setStarting(false);
-      if (ok) onStart(trimmed);
-    });
-  }, [valid, disabled, previewStatus, preview, fetchPreview, trimmed, onStart]);
+    if (!valid || disabled || !preview) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    onStart(trimmed);
+  }, [valid, disabled, preview, trimmed, onStart]);
 
   const fields = preview
     ? { name: preview.summary.name, symbol: preview.summary.symbol, price: preview.summary.priceUsd, liquidity: fmtNum(preview.summary.liquidityUsd), change: preview.summary.priceChange24h }
@@ -105,9 +102,6 @@ export default function MintForm({ disabled, onStart }: { disabled: boolean; onS
               setPreviewStatus("none");
               setPreview(null);
               setPreviewError("");
-            }}
-            onBlur={() => {
-              if (valid) void fetchPreview(trimmed);
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && valid) handleStart();
@@ -159,11 +153,12 @@ export default function MintForm({ disabled, onStart }: { disabled: boolean; onS
       {!disabled && (
         <button
           type="button"
-          disabled={!valid || starting}
+          disabled={!canRun}
           onClick={handleStart}
-          className="rounded border border-[#22c55e] px-4 py-2 text-sm font-semibold text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black disabled:cursor-not-allowed disabled:border-zinc-700 disabled:text-zinc-600 disabled:hover:bg-transparent"
+          title={valid && previewStatus !== "ok" ? "Waiting for token preview…" : undefined}
+          className="cursor-pointer rounded border border-[#22c55e] px-4 py-2 font-mono text-sm font-bold text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black disabled:cursor-not-allowed disabled:border-zinc-700 disabled:text-zinc-600 disabled:hover:bg-transparent"
         >
-          {starting ? "Loading preview…" : "Run analysis"}
+          Run analysis
         </button>
       )}
     </div>
