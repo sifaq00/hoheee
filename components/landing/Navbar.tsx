@@ -1,40 +1,83 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import WalletButton from "@/components/WalletButton";
 
 const LINKS = [
   { href: "#how", label: "How it works" },
   { href: "#live", label: "Live demo" },
+  { href: "#report", label: "Report" },
+  { href: "#numbers", label: "Numbers" },
   { href: "#faq", label: "FAQ" },
 ];
 
 export default function Navbar() {
+  const [open, setOpen] = useState(false);
+
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-[#0a0a0a]/80 backdrop-blur-md">
-      <nav aria-label="Primary" className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
-        <Link href="/" className="flex cursor-pointer items-center gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element -- static local webp */}
-          <img src="/logo.webp" alt="Aries logo" width={28} height={28} className="rounded" />
-          <span className="font-display text-sm font-bold tracking-[0.18em] text-white">ARIES</span>
-        </Link>
-        <div className="hidden items-center gap-6 sm:flex">
-          {LINKS.map((l) => (
-            <a key={l.href} href={l.href} className="font-mono text-xs tracking-wider text-zinc-400 transition-colors hover:text-[#22c55e]">
-              {l.label}
-            </a>
-          ))}
-        </div>
-        <div className="flex items-center gap-3">
-          <WalletButton />
-          <Link
-            href="/analyze"
-            className="cursor-pointer rounded border border-[#22c55e] bg-[#22c55e] px-3 py-1.5 font-mono text-xs font-bold tracking-wider text-black transition-colors hover:bg-transparent hover:text-[#22c55e]"
-          >
-            RUN ANALYSIS
+    <>
+      <header className="sticky top-10 z-50 border-b border-white/[0.07] bg-[#0a0a0a]/90 backdrop-blur-md">
+        <nav aria-label="Primary" className="mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-4">
+          <Link href="/" className="flex cursor-pointer items-center gap-2 justify-self-start">
+            {/* eslint-disable-next-line @next/next/no-img-element -- static local webp */}
+            <img src="/logo.webp" alt="Aries logo" width={28} height={28} className="rounded" />
+            <span className="font-display text-sm font-bold tracking-[0.18em] text-white">ARIES</span>
           </Link>
+          <div className="hidden items-center gap-7 justify-self-center lg:flex">
+            {LINKS.map((l) => (
+              <a key={l.href} href={l.href} className="font-mono text-[13px] font-medium text-zinc-400 transition-colors hover:text-[#22c55e]">
+                {l.label}
+              </a>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 justify-self-end">
+            <span className="hidden md:block">
+              <WalletButton />
+            </span>
+            <Link
+              href="/analyze"
+              className="cursor-pointer rounded-md bg-[#22c55e] px-4 py-2 font-mono text-[13px] font-bold text-black transition-colors hover:bg-[#4ade80]"
+            >
+              Run analysis
+            </Link>
+            <button
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              aria-label={open ? "Close menu" : "Open menu"}
+              aria-expanded={open}
+              className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-md border border-white/15 text-white lg:hidden"
+            >
+              <span aria-hidden="true" className="font-mono text-lg leading-none">{open ? "×" : "≡"}</span>
+            </button>
+          </div>
+        </nav>
+      </header>
+
+      {open && (
+        <div className="fixed inset-x-0 top-[104px] bottom-0 z-40 overflow-y-auto bg-[#0a0a0a] px-5 pt-2 pb-10 lg:hidden" role="dialog" aria-label="Menu">
+          <ul className="flex flex-col">
+            {LINKS.map((l) => (
+              <li key={l.href} className="border-b border-white/[0.07]">
+                <a href={l.href} onClick={() => setOpen(false)} className="flex cursor-pointer items-center justify-between py-4 font-mono text-base font-medium text-white">
+                  {l.label}
+                  <span aria-hidden="true" className="text-zinc-600">→</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-5 flex flex-col gap-3">
+            <WalletButton />
+            <Link
+              href="/analyze"
+              onClick={() => setOpen(false)}
+              className="cursor-pointer rounded-md bg-[#22c55e] px-4 py-3 text-center font-mono text-sm font-bold text-black"
+            >
+              Run analysis
+            </Link>
+          </div>
         </div>
-      </nav>
-    </header>
+      )}
+    </>
   );
 }

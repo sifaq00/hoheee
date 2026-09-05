@@ -1,25 +1,31 @@
+import AnnounceBar from "@/components/landing/AnnounceBar";
 import Navbar from "@/components/landing/Navbar";
 import Hero from "@/components/landing/Hero";
 import Ticker from "@/components/landing/Ticker";
-import Pipeline from "@/components/landing/Pipeline";
+import PoweredBy from "@/components/landing/PoweredBy";
+import Principles from "@/components/landing/Principles";
 import LiveDemo from "@/components/landing/LiveDemo";
-import Features from "@/components/landing/Features";
+import ReportAnatomy from "@/components/landing/ReportAnatomy";
+import StatsLedger from "@/components/landing/StatsLedger";
 import Faq from "@/components/landing/Faq";
-import CtaBanner from "@/components/landing/CtaBanner";
+import CtaBand from "@/components/landing/CtaBand";
 import Footer from "@/components/landing/Footer";
 
 export default function Landing() {
   return (
-    <div className="min-h-full">
+    <div className="min-h-full pt-10">
+      <AnnounceBar />
       <Navbar />
       <main>
         <Hero />
         <Ticker />
-        <Pipeline />
+        <PoweredBy />
+        <Principles />
         <LiveDemo />
-        <Features />
+        <ReportAnatomy />
+        <StatsLedger />
         <Faq />
-        <CtaBanner />
+        <CtaBand />
       </main>
       <Footer />
     </div>

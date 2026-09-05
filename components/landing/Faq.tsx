@@ -13,9 +13,9 @@ export default function Faq() {
     <section id="faq" className="scroll-mt-20 border-t border-white/[0.06] bg-[#0c0f0c]" aria-labelledby="faq-title">
       <div className="mx-auto max-w-3xl px-4 py-14 md:py-20">
         <Reveal className="text-center">
-          <p className="font-mono text-[10px] tracking-[0.22em] text-[#22c55e] uppercase">04 — FAQ</p>
-          <h2 id="faq-title" className="font-display mt-2 text-2xl font-black text-white sm:text-3xl">
-            STRAIGHT ANSWERS
+          <p className="font-mono text-[10px] tracking-[0.22em] text-[#22c55e] uppercase">05 — FAQ</p>
+          <h2 id="faq-title" className="font-display mt-3 text-3xl font-medium tracking-tight text-white sm:text-4xl">
+            Straight answers
           </h2>
         </Reveal>
         <div className="mt-8 flex flex-col gap-3">
