@@ -71,13 +71,6 @@ export interface FoundToken {
   change24h: number;
 }
 
-export interface BootLine {
-  id: number;
-  t: number;
-  text: string;
-  tone: "ok" | "dim" | "bad";
-}
-
 export const STREAM_INTERRUPTED_MSG = "Stream interrupted — partial results below";
 const RESTORED_MSG = "Showing previous run — refresh ended the stream, results may be partial";
 const STORAGE_KEY = "hoheee:last-run";
@@ -91,7 +84,6 @@ interface SavedRun {
   debates: DebateItem[];
   decision: string | null;
   feedErrors: FeedErrorItem[];
-  boot: BootLine[];
   completed: boolean;
 }
 
@@ -136,10 +128,8 @@ export function useAnalysis() {
   const [runId, setRunId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const idRef = useRef(0);
-  const t0Ref = useRef(0);
   const mintRef = useRef(getSaved()?.mint ?? "");
   const lastSaveRef = useRef(0);
-  const [boot, setBoot] = useState<BootLine[]>(() => getSaved()?.boot ?? []);
 
   const ensureAgent = useCallback((key: string) => {
     setAgentOrder((prev) => (prev.includes(key) ? prev : [...prev, key]));
@@ -160,7 +150,6 @@ export function useAnalysis() {
     setDecision(null);
     setFeedErrors([]);
     setStreamError(null);
-    setBoot([]);
     setRunId(null);
     setPhase("idle");
     try {
@@ -168,12 +157,6 @@ export function useAnalysis() {
     } catch {
       // private mode / quota: ignore
     }
-  }, []);
-
-  const logBoot = useCallback((text: string, tone: BootLine["tone"] = "dim") => {
-    const id = ++idRef.current;
-    const t = (Date.now() - t0Ref.current) / 1000;
-    setBoot((prev) => [...prev.slice(-39), { id, t, text, tone }]);
   }, []);
 
   const startAnalysis = useCallback(
@@ -189,12 +172,8 @@ export function useAnalysis() {
     setDecision(null);
     setFeedErrors([]);
     setStreamError(null);
-    setBoot([]);
     setRunId(null);
     setPhase("running");
-    t0Ref.current = Date.now();
-    mintRef.current = mint;
-    logBoot(`run ${mint.slice(0, 8)} .... INITIATED`);
 
     const onEvent = (type: string, data: unknown) => {
       const e = data as AgentEvent;
@@ -202,15 +181,13 @@ export function useAnalysis() {
       switch (kind) {
         case "token_found": {
           const t = e as Extract<AgentEvent, { type: "token_found" }>;
-          setToken({ name: t.name, price: t.price, liquidity: t.liquidity, change24h: t.change24h });
-          logBoot(`uplink ${t.name} .... OK`, "ok");
-          break;
+            setToken({ name: t.name, price: t.price, liquidity: t.liquidity, change24h: t.change24h });
+            break;
         }
         case "agent_start": {
-          const a = e as Extract<AgentEvent, { type: "agent_start" }>;
-          ensureAgent(String(a.agent ?? "unknown"));
-          logBoot(`scout:${String(a.agent ?? "unknown")} .... ENGAGED`);
-          break;
+            const a = e as Extract<AgentEvent, { type: "agent_start" }>;
+            ensureAgent(String(a.agent ?? "unknown"));
+            break;
         }
           case "reasoning": {
             const r = e as Extract<AgentEvent, { type: "reasoning" }>;
@@ -255,7 +232,6 @@ export function useAnalysis() {
           const r = e as Extract<AgentEvent, { type: "agent_report" }>;
           const key = String(r.agent ?? "unknown");
           ensureAgent(key);
-          logBoot(`scout:${key} .... FILED`, "ok");
           setAgents((prev) => ({
               ...prev,
               [key]: { ...prev[key], agent: key, status: "done", reasoning: prev[key]?.reasoning ?? "", tools: prev[key]?.tools ?? [], report: r.report },
@@ -266,28 +242,24 @@ export function useAnalysis() {
           const d = e as Extract<AgentEvent, { type: "debate_turn" }>;
           const id = ++idRef.current;
           setDebates((prev) => [...prev, { id, phase: d.phase, round: d.round, side: d.side, text: d.text }]);
-          logBoot(`clash:${d.side} r${d.round} .... LOGGED`);
           break;
         }
         case "decision": {
           const d = e as Extract<AgentEvent, { type: "decision" }>;
           setDecision(d.markdown);
           setPhase("done");
-          logBoot("verdict .... SEALED", "ok");
           break;
         }
         case "error": {
           const er = e as unknown as { agent?: unknown; message?: unknown };
           const id = ++idRef.current;
           setFeedErrors((prev) => [...prev, { id, agent: String(er.agent ?? "unknown"), message: String(er.message ?? "Unknown error") }]);
-          logBoot(`${String(er.agent ?? "unknown")} .... FAULT`, "bad");
           break;
         }
         case "done": {
           const d = e as Extract<AgentEvent, { type: "done" }>;
           setRunId(d.runId);
           setPhase("done");
-          logBoot("stream .... CLOSED");
           break;
         }
           default:
@@ -299,10 +271,9 @@ export function useAnalysis() {
         if (controller.signal.aborted) return;
         const msg = err instanceof Error ? `${STREAM_INTERRUPTED_MSG}: ${err.message}` : STREAM_INTERRUPTED_MSG;
         setStreamError(msg);
-        logBoot("stream .... CUT", "bad");
       });
     },
-    [ensureAgent, logBoot]
+    [ensureAgent]
   );
 
   useEffect(() => () => abortRef.current?.abort(), []);
@@ -325,7 +296,6 @@ export function useAnalysis() {
         debates,
         decision,
         feedErrors,
-        boot: boot.slice(-40),
         completed: phase === "done" && decision !== null,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
@@ -334,7 +304,7 @@ export function useAnalysis() {
     }
   });
 
-  return { phase, token, agentOrder, agents, debates, decision, feedErrors, streamError, boot, runId, startAnalysis, reset };
+  return { phase, token, agentOrder, agents, debates, decision, feedErrors, streamError, runId, startAnalysis, reset };
 }
 
 type PreviewStatus = "none" | "loading" | "ok" | "not-found" | "error";
@@ -390,36 +360,8 @@ function PhaseRail({
   );
 }
 
-function BootLog({ lines, running }: { lines: BootLine[]; running: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [lines]);
-  return (
-    <section aria-label="Boot log" className="rounded border border-zinc-800 bg-zinc-950 p-4">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Boot log</h2>
-      <div ref={ref} className="mt-2 h-56 overflow-y-auto font-mono text-xs leading-relaxed">
-        {lines.map((l) => (
-          <p
-            key={l.id}
-            className={l.tone === "ok" ? "text-[#22c55e]" : l.tone === "bad" ? "text-[#ef4444]" : "text-zinc-500"}
-          >
-            <span className="text-zinc-600">t+{l.t.toFixed(1)}s</span> {l.text}
-          </p>
-        ))}
-        {running && (
-          <p className="text-[#22c55e]">
-            <span className="animate-pulse">▊</span>
-          </p>
-        )}
-      </div>
-    </section>
-  );
-}
-
 export default function Home() {
-  const { phase, token, agentOrder, agents, debates, decision, feedErrors, streamError, boot, startAnalysis, reset } = useAnalysis();
+  const { phase, token, agentOrder, agents, debates, decision, feedErrors, streamError, startAnalysis, reset } = useAnalysis();
   const [mint, setMint] = useState(() => getSaved()?.mint ?? "");
   const [touched, setTouched] = useState(false);
   const [preview, setPreview] = useState<TokenPreview | null>(null);
@@ -622,59 +564,50 @@ export default function Home() {
               phase={phase}
             />
             {phase === "done" && decision && <DecisionCard markdown={decision} />}
-            <div className="grid items-start gap-4 xl:grid-cols-3">
-              <div className="flex min-w-0 flex-col gap-4 xl:col-span-2">
-                {token && (
-                  <TokenCard
-                    name={token.name}
-                    price={token.price}
-                    liquidity={token.liquidity}
-                    change24h={token.change24h}
-                  />
-                )}
-                {agentOrder.length > 0 && (
-                  <section className="flex flex-col gap-3">
-                    <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                      Analysts ({agentOrder.filter((k) => agents[k]?.status === "done").length}/{agentOrder.length})
-                    </h2>
-                    <div className="grid items-start gap-4 sm:grid-cols-2">
-                      {agentOrder.map((key) => {
-                        const a = agents[key];
-                        if (!a) return null;
-                        return (
-                          <div key={key} className="min-w-0">
-                            <AgentCard
-                              agent={a.agent}
-                              status={a.status}
-                              tools={a.tools}
-                              results={a.results}
-                              report={a.report}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </section>
-                )}
-                {debates.length > 0 && (
-                  <section className="flex flex-col gap-3">
-                    <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                      Debate ({debates.length})
-                    </h2>
-                    <div className="grid items-start gap-4 md:grid-cols-2">
-                      {debates.map((d) => (
-                        <div key={d.id} className="min-w-0">
-                          <DebateCard phase={d.phase} round={d.round} side={d.side} text={d.text} />
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                )}
-              </div>
-              <aside className="flex min-w-0 flex-col gap-4 xl:sticky xl:top-4">
-                <BootLog lines={boot} running={phase === "running"} />
-              </aside>
-            </div>
+            {token && (
+              <TokenCard
+                name={token.name}
+                price={token.price}
+                liquidity={token.liquidity}
+                change24h={token.change24h}
+              />
+            )}
+            {agentOrder.length > 0 && (
+              <section className="flex flex-col gap-3">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                  Analysts ({agentOrder.filter((k) => agents[k]?.status === "done").length}/{agentOrder.length})
+                </h2>
+                <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  {agentOrder.map((key) => {
+                    const a = agents[key];
+                    if (!a) return null;
+                    return (
+                      <div key={key} className="min-w-0">
+                        <AgentCard
+                          agent={a.agent}
+                          status={a.status}
+                          tools={a.tools}
+                          results={a.results}
+                          report={a.report}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+            {debates.length > 0 && (
+              <section className="flex flex-col gap-3">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                  Debate ({debates.length})
+                </h2>
+                <div className="flex flex-col gap-3">
+                  {debates.map((d) => (
+                    <DebateCard key={d.id} phase={d.phase} round={d.round} side={d.side} text={d.text} />
+                  ))}
+                </div>
+              </section>
+            )}
             {phase === "done" ? (
               <button
                 type="button"

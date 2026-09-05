@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
 export interface ToolBadge {
@@ -51,11 +51,18 @@ export default function AgentCard({ agent, status, tools, results, report }: Age
     return () => clearInterval(timer);
   }, [report, typedFor]);
 
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (el && !done) el.scrollTop = el.scrollHeight;
+  });
+
   return (
     <section
       aria-label={`Agent ${agent}`}
       data-testid={`agent-card-${agent}`}
-      className="rounded border border-zinc-800 bg-zinc-950 p-4"
+      className="flex h-80 flex-col rounded border border-zinc-800 bg-zinc-950 p-4"
     >
       <div className="flex items-center gap-2">
         <span
@@ -82,7 +89,7 @@ export default function AgentCard({ agent, status, tools, results, report }: Age
       )}
 
       {results.length > 0 && (
-        <ul className="mt-2 flex flex-col gap-1">
+        <ul className="mt-2 flex max-h-20 flex-col gap-1 overflow-y-auto">
           {results.map((r, i) => (
             <li
               key={i}
@@ -102,7 +109,7 @@ export default function AgentCard({ agent, status, tools, results, report }: Age
       )}
 
       {report !== null && (
-        <div data-testid={`agent-report-${agent}`} className="md mt-3 max-w-none">
+        <div ref={bodyRef} data-testid={`agent-report-${agent}`} className="md mt-3 min-h-0 flex-1 overflow-y-auto max-w-none">
           {done ? (
             <ReactMarkdown>{report}</ReactMarkdown>
           ) : (
