@@ -27,7 +27,7 @@ describe("runL2", () => {
     let calls = 0;
     global.fetch = vi.fn(async () => {
       calls += 1;
-      if (calls === 2 || calls === 3) throw new Error("boom");
+      if (calls >= 2 && calls <= 5) throw new Error("boom");
       return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: "ok" }, finish_reason: "stop" }] }) } as unknown as Response;
     }) as unknown as typeof fetch;
     const res = await runL2({ mint: MINT, reports: { ...REPORTS, news: MISSING_REPORT }, rounds: 1 });
