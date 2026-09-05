@@ -21,6 +21,7 @@ export async function runL4(
   input: {
     mint: string;
     model?: string;
+    wallet?: string;
     token: L1Result["token"];
     symbol: string;
     reports: ReportsBundle;
@@ -51,6 +52,7 @@ export async function runL4(
   const { id } = await saveReport({
     mint: input.mint,
     model,
+    wallet: input.wallet ?? null,
     token: { name: input.token.name, price: Number(input.token.price) || 0, liquidity: input.token.liquidity, change24h: input.token.change24h, symbol: input.symbol },
     reports: { ...input.reports },
     debate: input.debate.map((d) => ({ ...d })),

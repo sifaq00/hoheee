@@ -23,6 +23,7 @@ type Step = NonNullable<LayeredState["failedStep"]>;
 
 interface Seed {
   mint: string;
+  wallet?: string;
   token?: L1Result["token"];
   symbol?: string;
   reports?: L1Result["reports"];
@@ -107,7 +108,7 @@ export function useLayeredAnalysis() {
     dispatch({ type: "NOTE", note: "L4 decider sealing verdict" });
     const l4 = (await streamLayer(
       "/api/l4",
-      { mint, token, symbol: symbol ?? "", reports, debate, risks },
+      { mint, token, symbol: symbol ?? "", reports, debate, risks, wallet: seed.wallet ?? null },
       signal,
       () => undefined
     )) as unknown as L4Result;
@@ -115,12 +116,12 @@ export function useLayeredAnalysis() {
   }, []);
 
   const start = useCallback(
-    (mint: string) => {
+    (mint: string, wallet?: string) => {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
       dispatch({ type: "START", mint });
-      void runFrom("l1", { mint }, controller.signal).catch((err) => {
+      void runFrom("l1", { mint, wallet }, controller.signal).catch((err) => {
         if (controller.signal.aborted) return;
         const s = stateRef.current;
         const step: Step = s.step === "l1" || s.step === "l2" || s.step === "l3" || s.step === "l4" ? s.step : "l1";

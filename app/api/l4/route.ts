@@ -9,13 +9,13 @@ const SLOTS = ["onchain", "technical", "sentiment", "news"] as const;
 const RISK_SLOTS = ["liquidity", "rugpath", "concentration"] as const;
 
 export async function POST(req: Request) {
-  let body: { mint?: unknown; token?: unknown; symbol?: unknown; reports?: unknown; debate?: unknown; risks?: unknown };
+  let body: { mint?: unknown; token?: unknown; symbol?: unknown; reports?: unknown; debate?: unknown; risks?: unknown; wallet?: unknown };
   try {
     body = await req.json();
   } catch {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
-  const { mint, token, symbol, reports, debate, risks } = body;
+  const { mint, token, symbol, reports, debate, risks, wallet } = body;
   if (typeof mint !== "string" || !MINT_REGEX.test(mint)) {
     return Response.json({ error: "Invalid Solana mint address" }, { status: 400 });
   }
@@ -36,6 +36,7 @@ export async function POST(req: Request) {
       const result = await runL4(
         {
           mint,
+          wallet: typeof wallet === "string" ? wallet : undefined,
           token: token as { name: string; price: string; liquidity: number; change24h: number },
           symbol,
           reports: reports as Record<(typeof SLOTS)[number], string>,

@@ -6,7 +6,7 @@ import AgentCard from "@/components/AgentCard";
 import DebateCard from "@/components/DebateCard";
 import DecisionCard from "@/components/DecisionCard";
 import { parseDecision } from "@/lib/decision";
-import { loadReport } from "@/lib/layered/supabase";
+import { bumpViews, loadReport } from "@/lib/layered/supabase";
 import CopyThreadButton from "@/components/CopyThreadButton";
 
 export const dynamicParams = true;
@@ -58,6 +58,8 @@ export default async function ReportPage({
 }) {
   const { id } = await params;
   const dbRow = await loadReport(id);
+  if (dbRow) await bumpViews(id);
+  const views = dbRow?.views != null ? dbRow.views + 1 : null;
   const run = dbRow
     ? {
         token: { name: dbRow.token.name, symbol: dbRow.token.symbol, price: dbRow.token.price, liquidity: dbRow.token.liquidity, change24h: dbRow.token.change24h },
@@ -80,7 +82,8 @@ export default async function ReportPage({
             Research
           </h1>
           <p className="text-sm text-zinc-400">
-            Research tool, not financial advice. Analysis takes under a minute.
+            Research tool, not financial advice. Analysis takes a few minutes.
+            {views != null && <> · {views} {views === 1 ? "read" : "reads"}</>}
           </p>
         </header>
 

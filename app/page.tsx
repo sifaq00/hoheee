@@ -1,6 +1,9 @@
 "use client";
 
 import { useLayeredAnalysis } from "@/hooks/useLayeredAnalysis";
+import { useWallet } from "@/context/WalletContext";
+import WalletButton from "@/components/WalletButton";
+import HistorySection from "@/components/layered/HistorySection";
 import MintForm from "@/components/layered/MintForm";
 import AnalystsSection from "@/components/layered/AnalystsSection";
 import DebateSection from "@/components/layered/DebateSection";
@@ -43,21 +46,27 @@ function LiveNote({ note }: { note: string | null }) {
 
 export default function Home() {
   const { state, start, retry, reset } = useLayeredAnalysis();
+  const { connected, address } = useWallet();
   const running = state.step === "l1" || state.step === "l2" || state.step === "l3" || state.step === "l4";
   const showFeed = running || state.step === "done" || state.step === "error";
+  const done = state.step === "done" && state.decision && state.shareId;
 
   return (
     <div className="min-h-full flex flex-col items-center px-4 py-10">
       <main className="w-full max-w-none flex flex-col gap-6">
         <div className="w-full max-w-2xl mx-auto flex flex-col gap-6">
           <header className="flex flex-col gap-2 border-b border-zinc-800 pb-4">
-            <h1 className="text-xl font-bold tracking-tight">
-              Hoheee <span className="text-[#22c55e]">—</span> Solana Token Research
-            </h1>
+            <div className="flex items-center justify-between gap-3">
+              <h1 className="text-xl font-bold tracking-tight">
+                Hoheee <span className="text-[#22c55e]">—</span> Solana Token Research
+              </h1>
+              <WalletButton />
+            </div>
             <p className="text-sm text-zinc-400">Research tool, not financial advice. Full run takes a few minutes.</p>
           </header>
 
-          {!showFeed && <MintForm disabled={false} onStart={start} />}
+          {!showFeed && <MintForm disabled={false} onStart={(mint) => start(mint, connected ? address : undefined)} />}
+          {!showFeed && connected && <HistorySection wallet={address} />}
         </div>
 
         {showFeed && (
@@ -74,10 +83,10 @@ export default function Home() {
             )}
             <StepRail step={state.step} />
             <LiveNote note={state.note} />
+            {done && <DecisionSection decision={state.decision!} shareId={state.shareId!} />}
             {state.token && state.reports && <AnalystsSection token={state.token} symbol={state.symbol} reports={state.reports} />}
             <DebateSection debate={state.debate} />
             {state.risks && <RiskSection risks={state.risks} />}
-            {state.step === "done" && state.decision && state.shareId && <DecisionSection decision={state.decision} shareId={state.shareId} />}
             <button
               type="button"
               onClick={reset}
@@ -91,7 +100,8 @@ export default function Home() {
       <footer className="mt-6 w-full border-t border-zinc-800 pt-4 text-xs leading-relaxed text-zinc-500">
         <p>
           Each full run takes a few minutes: 4 analysts, 2 debate rounds, risk review, decider. New tokens have thin data — low liquidity and
-          short history make signals unreliable. This system can be wrong: output is automated research, not financial advice.
+          short history make signals unreliable. This system can be wrong: output is automated research, not financial advice. Each full run
+          costs real model tokens — runs are throttled per IP for the demo.
         </p>
         <p className="mt-2">Research background: &ldquo;TradingAgents: Multi-Agents LLM Financial Trading Framework&rdquo; (arXiv 2412.20138).</p>
       </footer>
