@@ -1,7 +1,7 @@
 import { runL1 } from "@/lib/layered/l1";
+import { isChainId, validateAddress } from "@/lib/chains";
 import { logEvent } from "@/lib/layered/supabase";
 import { emitResult, sseResponse } from "@/lib/layered/sse";
-import { MINT_REGEX } from "@/lib/layered/validate";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -27,24 +27,26 @@ async function rateLimited(req: Request): Promise<boolean> {
 }
 
 export async function POST(req: Request) {
+  let chain: unknown;
   let mint: unknown;
   let wallet: unknown;
   try {
     const body = await req.json();
+    chain = body.chain ?? "solana";
     mint = body.mint;
     wallet = body.wallet;
   } catch {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
-  if (typeof mint !== "string" || !MINT_REGEX.test(mint)) {
-    return Response.json({ error: "Invalid Solana mint address" }, { status: 400 });
+  if (!isChainId(chain) || typeof mint !== "string" || !validateAddress(chain, mint)) {
+    return Response.json({ error: "Invalid chain or address" }, { status: 400 });
   }
   if (await rateLimited(req)) {
     return Response.json({ error: "Demo limit: 10 runs per hour per IP" }, { status: 429 });
   }
   void logEvent("run_started", wallet);
   return sseResponse((emit) =>
-    emitResult(emit, () => runL1(mint, { signal: req.signal, emit: (e) => emit({ ...e }) }))
+    emitResult(emit, () => runL1(chain, mint, { signal: req.signal, emit: (e) => emit({ ...e }) }))
   );
 }
 

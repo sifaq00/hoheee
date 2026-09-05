@@ -22,8 +22,14 @@ export default function WalletButton() {
       title="Disconnect wallet"
       className="flex items-center gap-2 rounded border border-zinc-700 px-3 py-1.5 font-mono text-sm text-zinc-300 hover:border-[#ef4444] hover:text-[#ef4444]"
     >
-      {/* eslint-disable-next-line @next/next/no-img-element -- static local svg, no optimizer needed */}
-      <img src={walletIcon} alt="" width={18} height={18} />
+      {walletIcon ? (
+        // eslint-disable-next-line @next/next/no-img-element -- static local svg, no optimizer needed
+        <img src={walletIcon} alt="" width={18} height={18} />
+      ) : (
+        <span aria-hidden="true" className="flex h-[18px] w-[18px] items-center justify-center rounded bg-black font-mono text-[10px] font-bold text-[#22c55e]">
+          Ξ
+        </span>
+      )}
       {shortAddress}
     </button>
   );

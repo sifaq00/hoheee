@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { SOLANA_WALLETS, useWallet, type SolanaWalletOption } from "@/context/WalletContext";
+import { SOLANA_WALLETS, EVM_WALLETS, useWallet, type WalletOption } from "@/context/WalletContext";
 
 function getPhantomProvider() {
   if (typeof window === "undefined") return null;
@@ -22,6 +22,7 @@ export default function WalletModal() {
   const light = pathname === "/";
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [tab, setTab] = useState<"solana" | "evm">("solana");
 
   /* eslint-disable react-hooks/set-state-in-effect -- reset transient modal state on close */
   useEffect(() => {
@@ -40,7 +41,7 @@ export default function WalletModal() {
     return () => window.removeEventListener("keydown", onKey);
   }, [isModalOpen, setIsModalOpen]);
 
-  const select = async (wallet: SolanaWalletOption) => {
+  const select = async (wallet: WalletOption) => {
     setConnectingId(wallet.id);
     setErrorMessage(null);
     if (!wallet.detect()) {
@@ -76,6 +77,17 @@ export default function WalletModal() {
           connect(wallet, addr);
           setIsModalOpen(false);
         }
+      } else if (wallet.id === "metamask" && window.ethereum?.request) {
+        const accounts = (await withTimeout(
+          window.ethereum.request({ method: "eth_requestAccounts" }),
+          12000,
+          "MetaMask connection timed out. Unlock your wallet."
+        )) as unknown;
+        const addr = Array.isArray(accounts) ? String(accounts[0] ?? "") : "";
+        if (/^0x[0-9a-fA-F]{40}$/.test(addr)) {
+          connect(wallet, addr);
+          setIsModalOpen(false);
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -97,8 +109,24 @@ export default function WalletModal() {
           </button>
         </div>
         <p className={`mt-1 text-xs ${light ? "text-zinc-500" : "text-zinc-500"}`}>A wallet is required to run analysis — reports save to your history.</p>
-        <div className="mt-4 flex flex-col gap-2">
-          {SOLANA_WALLETS.map((w) => (
+        <div className={`mt-3 flex gap-1 rounded border p-1 ${light ? "border-black/10" : "border-zinc-800"}`} role="tablist" aria-label="Wallet network">
+          {(["solana", "evm"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              aria-selected={tab === t}
+              onClick={() => setTab(t)}
+              className={`flex-1 cursor-pointer rounded px-2 py-1 font-mono text-xs font-bold tracking-wider uppercase ${
+                tab === t ? "bg-[#22c55e] text-black" : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              {t === "solana" ? "Solana" : "EVM"}
+            </button>
+          ))}
+        </div>
+        <div className="mt-3 flex flex-col gap-2">
+          {(tab === "solana" ? SOLANA_WALLETS : EVM_WALLETS).map((w) => (
             <button
               key={w.id}
               type="button"
@@ -110,8 +138,14 @@ export default function WalletModal() {
                   : "border-zinc-800 hover:border-[#22c55e]"
               }`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element -- static local svg, no optimizer needed */}
-              <img src={w.icon} alt="" width={24} height={24} />
+              {w.icon ? (
+                // eslint-disable-next-line @next/next/no-img-element -- static local svg, no optimizer needed
+                <img src={w.icon} alt="" width={24} height={24} />
+              ) : (
+                <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center rounded bg-black font-mono text-xs font-bold text-[#22c55e]">
+                  Ξ
+                </span>
+              )}
               <span className={`flex-1 font-medium ${light ? "text-black" : "text-white"}`}>{w.name}</span>
               <span className="font-mono text-xs text-zinc-500">{connectingId === w.id ? "…" : wallet_detect(w) ? "detected" : "install"}</span>
             </button>
@@ -128,7 +162,7 @@ export default function WalletModal() {
   );
 }
 
-function wallet_detect(w: SolanaWalletOption): boolean {
+function wallet_detect(w: WalletOption): boolean {
   try {
     return w.detect();
   } catch {

@@ -8,18 +8,30 @@ declare global {
     phantom?: { solana?: { isPhantom?: boolean; connect?: () => Promise<{ publicKey?: { toString?: () => string } }> } };
     solflare?: { isSolflare?: boolean; connect?: () => Promise<void>; publicKey?: { toString?: () => string } };
     backpack?: { connect?: () => Promise<{ publicKey?: { toString?: () => string } }> };
+    ethereum?: { request?: (args: { method: string }) => Promise<unknown> };
   }
 }
 
 export type SolanaWalletId = "phantom" | "solflare" | "backpack";
+export type EvmWalletId = "metamask";
 
 export interface SolanaWalletOption {
   id: SolanaWalletId;
   name: string;
-  icon: string;
+  icon: string | null;
   installUrl: string;
   detect: () => boolean;
 }
+
+export interface EvmWalletOption {
+  id: EvmWalletId;
+  name: string;
+  icon: string | null;
+  installUrl: string;
+  detect: () => boolean;
+}
+
+export type WalletOption = SolanaWalletOption | EvmWalletOption;
 
 export const SOLANA_WALLETS: SolanaWalletOption[] = [
   {
@@ -45,15 +57,25 @@ export const SOLANA_WALLETS: SolanaWalletOption[] = [
   },
 ];
 
+export const EVM_WALLETS: EvmWalletOption[] = [
+  {
+    id: "metamask",
+    name: "MetaMask",
+    icon: null,
+    installUrl: "https://metamask.io/",
+    detect: () => Boolean(typeof window !== "undefined" && window.ethereum?.request),
+  },
+];
+
 interface WalletContextType {
   connected: boolean;
   address: string;
   walletName: string;
-  walletIcon: string;
+  walletIcon: string | null;
   shortAddress: string;
   isModalOpen: boolean;
   setIsModalOpen: (open: boolean) => void;
-  connect: (wallet: SolanaWalletOption, addr: string) => void;
+  connect: (wallet: WalletOption, addr: string) => void;
   disconnect: () => void;
 }
 
@@ -67,7 +89,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState("");
   const [walletName, setWalletName] = useState("Phantom");
-  const [walletIcon, setWalletIcon] = useState("/wallets/phantom.svg");
+  const [walletIcon, setWalletIcon] = useState<string | null>("/wallets/phantom.svg");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Restore wallet session on page reload (external store).
@@ -87,7 +109,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const connect = useCallback((wallet: SolanaWalletOption, addr: string) => {
+  const connect = useCallback((wallet: WalletOption, addr: string) => {
     setConnected(true);
     setAddress(addr);
     setWalletName(wallet.name);
@@ -95,7 +117,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem(ADDR_KEY, addr);
       localStorage.setItem(NAME_KEY, wallet.name);
-      localStorage.setItem(ICON_KEY, wallet.icon);
+      if (wallet.icon) localStorage.setItem(ICON_KEY, wallet.icon);
+      else localStorage.removeItem(ICON_KEY);
     } catch {
       // private mode: ignore
     }
