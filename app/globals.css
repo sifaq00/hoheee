@@ -145,8 +145,8 @@ body {
 /* Isometric layer cake (factory slices). */
 .iso-scene {
   --s: min(200px, 56vw);
-  --t: 46px;
-  --step: 58px;
+  --t: 34px;
+  --step: 46px;
   position: relative;
   width: calc(var(--s) * 1.45);
   height: calc(var(--s) * 0.78 + 4 * var(--step));
@@ -248,6 +248,11 @@ body {
   transform-origin: right;
   transform: rotateY(90deg);
   writing-mode: vertical-rl;
+}
+
+.iso-unmirror {
+  display: block;
+  transform: scaleX(-1);
 }
 
 .land-stack-detail {

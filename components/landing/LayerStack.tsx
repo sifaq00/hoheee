@@ -11,7 +11,7 @@ const LAYERS = [
 ];
 
 export default function LayerStack() {
-  const [sel, setSel] = useState(3);
+  const [sel, setSel] = useState(0);
   const active = LAYERS[sel];
 
   return (
@@ -26,12 +26,12 @@ export default function LayerStack() {
               role="tab"
               aria-selected={on}
               onClick={() => setSel(i)}
-              onMouseEnter={() => setSel(i)}
               onFocus={() => setSel(i)}
               className={`iso-slab ${on ? "iso-on" : ""}`}
               style={{ "--z": i } as CSSProperties}
             >
               <span aria-hidden="true" className="iso-face iso-left">{l.side}</span>
+              <span aria-hidden="true" className="iso-face iso-right"><span className="iso-unmirror">{l.id} · {l.edge}</span></span>
               <span aria-hidden="true" className="iso-face iso-right">{l.id} · {l.edge}</span>
               <span className="iso-top">
                 {on ? (
