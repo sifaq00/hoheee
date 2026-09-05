@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { TokenSummary } from "@/lib/pipeline/state";
 import { fmtNum } from "@/lib/client/format";
-
-export const MINT_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+import { MINT_REGEX } from "@/lib/layered/validate";
 
 interface TokenPreview {
   mint: string;

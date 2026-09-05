@@ -1,6 +1,6 @@
 import { runL4 } from "@/lib/layered/l4";
 import { verifyChain } from "@/lib/layered/chain";
-import { sseResponse } from "@/lib/layered/sse";
+import { emitResult, sseResponse } from "@/lib/layered/sse";
 import { MINT_REGEX } from "@/lib/layered/validate";
 
 export const dynamic = "force-dynamic";
@@ -35,9 +35,9 @@ export async function POST(req: Request) {
   if (typeof chain !== "string" || !verifyChain(chain, "l3", mint, risks)) {
     return Response.json({ error: "Invalid layer chain" }, { status: 400 });
   }
-  return sseResponse(async (emit) => {
-    try {
-      const result = await runL4(
+  return sseResponse((emit) =>
+    emitResult(emit, () =>
+      runL4(
         {
           mint,
           wallet: typeof wallet === "string" ? wallet : undefined,
@@ -49,11 +49,8 @@ export async function POST(req: Request) {
           chain: chain as string,
         },
         { signal: req.signal }
-      );
-      emit({ type: "result", result });
-    } catch (err) {
-      emit({ type: "result", error: err instanceof Error ? err.message : String(err) });
-    }
-  });
+      )
+    )
+  );
 }
 

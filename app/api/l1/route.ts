@@ -1,5 +1,5 @@
 import { runL1 } from "@/lib/layered/l1";
-import { sseResponse } from "@/lib/layered/sse";
+import { emitResult, sseResponse } from "@/lib/layered/sse";
 import { MINT_REGEX } from "@/lib/layered/validate";
 
 export const dynamic = "force-dynamic";
@@ -38,13 +38,8 @@ export async function POST(req: Request) {
   if (await rateLimited(req)) {
     return Response.json({ error: "Demo limit: 10 runs per hour per IP" }, { status: 429 });
   }
-  return sseResponse(async (emit) => {
-    try {
-      const result = await runL1(mint, { signal: req.signal, emit: (e) => emit({ ...e }) });
-      emit({ type: "result", result });
-    } catch (err) {
-      emit({ type: "result", error: err instanceof Error ? err.message : String(err) });
-    }
-  });
+  return sseResponse((emit) =>
+    emitResult(emit, () => runL1(mint, { signal: req.signal, emit: (e) => emit({ ...e }) }))
+  );
 }
 

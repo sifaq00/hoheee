@@ -22,3 +22,12 @@ export function sseResponse(run: (emit: LayerEmit) => Promise<void>): Response {
     headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
   });
 }
+
+// Shared tail for layer routes: full result or honest inline error.
+export async function emitResult(emit: LayerEmit, fn: () => Promise<unknown>): Promise<void> {
+  try {
+    emit({ type: "result", result: await fn() });
+  } catch (err) {
+    emit({ type: "result", error: err instanceof Error ? err.message : String(err) });
+  }
+}

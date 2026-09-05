@@ -1,6 +1,6 @@
 import { runL2 } from "@/lib/layered/l2";
 import { verifyChain } from "@/lib/layered/chain";
-import { sseResponse } from "@/lib/layered/sse";
+import { emitResult, sseResponse } from "@/lib/layered/sse";
 import { MINT_REGEX } from "@/lib/layered/validate";
 
 export const dynamic = "force-dynamic";
@@ -25,16 +25,13 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid layer chain" }, { status: 400 });
   }
   const r = typeof rounds === "number" && rounds >= 1 && rounds <= 3 ? Math.floor(rounds) : 2;
-  return sseResponse(async (emit) => {
-    try {
-      const result = await runL2(
+  return sseResponse((emit) =>
+    emitResult(emit, () =>
+      runL2(
         { mint, reports: reports as Record<(typeof slots)[number], string>, rounds: r, chain: chain as string },
         { signal: req.signal, emit: (turn) => emit({ type: "debate_turn", ...turn }) }
-      );
-      emit({ type: "result", result });
-    } catch (err) {
-      emit({ type: "result", error: err instanceof Error ? err.message : String(err) });
-    }
-  });
+      )
+    )
+  );
 }
 

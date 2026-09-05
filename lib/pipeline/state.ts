@@ -23,17 +23,6 @@ export type AgentId =
   | "portfolio_manager"
   | "orchestrator";
 
-export interface PipelineState {
-  mint: string;
-  summary: TokenSummary;
-  reports: Partial<Record<"onchain" | "technical" | "sentiment" | "news", string>>;
-  debateHistory: string;
-  investmentPlan: string;
-  traderPlan: string;
-  riskDebateHistory: string;
-  finalDecision: string;
-}
-
 export type AgentEvent =
   | { type: "token_found"; name: string; price: string; liquidity: number; change24h: number }
   | { type: "agent_start"; agent: AgentId }
