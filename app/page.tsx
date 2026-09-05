@@ -79,23 +79,67 @@ export interface BootLine {
 }
 
 export const STREAM_INTERRUPTED_MSG = "Stream interrupted — partial results below";
+const RESTORED_MSG = "Showing previous run — refresh ended the stream, results may be partial";
+const STORAGE_KEY = "hoheee:last-run";
+
+interface SavedRun {
+  v: number;
+  mint: string;
+  token: FoundToken | null;
+  agentOrder: string[];
+  agents: Record<string, AgentFeedState>;
+  debates: DebateItem[];
+  decision: string | null;
+  feedErrors: FeedErrorItem[];
+  boot: BootLine[];
+  completed: boolean;
+}
+
+function readSaved(): SavedRun | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw) as SavedRun;
+    if (!s || s.v !== 1 || (!s.token && !s.decision && s.agentOrder.length === 0)) return null;
+    return s;
+  } catch {
+    return null;
+  }
+}
+
+let savedCache: SavedRun | null | undefined;
+function getSaved(): SavedRun | null {
+  if (savedCache === undefined) {
+    try {
+      savedCache = readSaved();
+    } catch {
+      savedCache = null;
+    }
+  }
+  return savedCache;
+}
 
 // Owns the phase state machine plus the streaming feed. One AbortController
 // per run; reasoning chunks append to the per-agent buffer.
 export function useAnalysis() {
-  const [phase, setPhase] = useState<AnalysisPhase>("idle");
-  const [token, setToken] = useState<FoundToken | null>(null);
-  const [agentOrder, setAgentOrder] = useState<string[]>([]);
-  const [agents, setAgents] = useState<Record<string, AgentFeedState>>({});
-  const [debates, setDebates] = useState<DebateItem[]>([]);
-  const [decision, setDecision] = useState<string | null>(null);
-  const [feedErrors, setFeedErrors] = useState<FeedErrorItem[]>([]);
-  const [streamError, setStreamError] = useState<string | null>(null);
+  const [phase, setPhase] = useState<AnalysisPhase>(() => (getSaved() ? "done" : "idle"));
+  const [token, setToken] = useState<FoundToken | null>(() => getSaved()?.token ?? null);
+  const [agentOrder, setAgentOrder] = useState<string[]>(() => getSaved()?.agentOrder ?? []);
+  const [agents, setAgents] = useState<Record<string, AgentFeedState>>(() => getSaved()?.agents ?? {});
+  const [debates, setDebates] = useState<DebateItem[]>(() => getSaved()?.debates ?? []);
+  const [decision, setDecision] = useState<string | null>(() => getSaved()?.decision ?? null);
+  const [feedErrors, setFeedErrors] = useState<FeedErrorItem[]>(() => getSaved()?.feedErrors ?? []);
+  const [streamError, setStreamError] = useState<string | null>(() => {
+    const s = getSaved();
+    return s && !s.completed ? RESTORED_MSG : null;
+  });
   const [runId, setRunId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const idRef = useRef(0);
   const t0Ref = useRef(0);
-  const [boot, setBoot] = useState<BootLine[]>([]);
+  const mintRef = useRef(getSaved()?.mint ?? "");
+  const lastSaveRef = useRef(0);
+  const [boot, setBoot] = useState<BootLine[]>(() => getSaved()?.boot ?? []);
 
   const ensureAgent = useCallback((key: string) => {
     setAgentOrder((prev) => (prev.includes(key) ? prev : [...prev, key]));
@@ -119,6 +163,11 @@ export function useAnalysis() {
     setBoot([]);
     setRunId(null);
     setPhase("idle");
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // private mode / quota: ignore
+    }
   }, []);
 
   const logBoot = useCallback((text: string, tone: BootLine["tone"] = "dim") => {
@@ -144,6 +193,7 @@ export function useAnalysis() {
     setRunId(null);
     setPhase("running");
     t0Ref.current = Date.now();
+    mintRef.current = mint;
     logBoot(`run ${mint.slice(0, 8)} .... INITIATED`);
 
     const onEvent = (type: string, data: unknown) => {
@@ -257,6 +307,33 @@ export function useAnalysis() {
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
+  // Persist the last run (reasoning buffers excluded) at most every 2s so a
+  // refresh restores results. Cleared only by explicit reset (New analysis).
+  useEffect(() => {
+    const now = Date.now();
+    if (now - lastSaveRef.current < 2000) return;
+    lastSaveRef.current = now;
+    try {
+      const slim: Record<string, AgentFeedState> = {};
+      for (const [k, a] of Object.entries(agents)) slim[k] = { ...a, reasoning: "" };
+      const saved: SavedRun = {
+        v: 1,
+        mint: mintRef.current,
+        token,
+        agentOrder,
+        agents: slim,
+        debates,
+        decision,
+        feedErrors,
+        boot: boot.slice(-40),
+        completed: phase === "done" && decision !== null,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+    } catch {
+      // private mode / quota: ignore
+    }
+  });
+
   return { phase, token, agentOrder, agents, debates, decision, feedErrors, streamError, boot, runId, startAnalysis, reset };
 }
 
@@ -343,7 +420,7 @@ function BootLog({ lines, running }: { lines: BootLine[]; running: boolean }) {
 
 export default function Home() {
   const { phase, token, agentOrder, agents, debates, decision, feedErrors, streamError, boot, startAnalysis, reset } = useAnalysis();
-  const [mint, setMint] = useState("");
+  const [mint, setMint] = useState(() => getSaved()?.mint ?? "");
   const [touched, setTouched] = useState(false);
   const [preview, setPreview] = useState<TokenPreview | null>(null);
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>("none");
