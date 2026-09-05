@@ -503,6 +503,8 @@ export default function Home() {
           </button>
         )}
 
+        </div>
+
         {showFeed && (
           <div className="flex flex-col gap-4" data-testid="analysis-feed">
             {streamError && (
@@ -596,7 +598,6 @@ export default function Home() {
             )}
           </div>
         )}
-        </div>
       </main>
       <footer className="mt-6 w-full border-t border-zinc-800 pt-4 text-xs leading-relaxed text-zinc-500">
           <p>
