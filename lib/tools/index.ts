@@ -3,6 +3,7 @@ import type { ToolSpec } from "@/lib/llm";
 import { getTokenProfile, getTokenProfileFor, getTopPools, getTopPoolsFor } from "./dexscreener";
 import { getRiskReport, getHolderDistribution } from "./rugcheck";
 import { getGoplusRisk } from "./goplus";
+import { getBtcOverview } from "./mempool";
 import { getCoinMetadata, getCoinMetadataFor, getPriceHistory, getPriceHistoryFor } from "./coingecko";
 
 type Executor = (argsJson: string) => Promise<string>;
@@ -97,6 +98,15 @@ export const TOOL_SPECS: Record<string, ToolSpec> = {
       parameters: MINT_PARAM,
     },
   },
+  get_btc_overview: {
+    type: "function",
+    function: {
+      name: "get_btc_overview",
+      description:
+        "Get native Bitcoin chain stats from mempool.space: hashrate, difficulty adjustment, fee rates, tip height. Use for Bitcoin on-chain context. Takes no meaningful arguments.",
+      parameters: MINT_PARAM,
+    },
+  },
 };
 
 export const TOOL_EXECUTORS: Record<string, Executor> = {
@@ -131,6 +141,7 @@ export function makeExecutors(chain: ChainId): Record<string, Executor> {
     get_coin_metadata: forChain(getCoinMetadataFor),
     get_price_history: forChain(getPriceHistoryFor),
     get_goplus_risk: forChain(getGoplusRisk),
+    get_btc_overview: async () => getBtcOverview(),
   };
 }
 
@@ -145,6 +156,14 @@ export const ANALYST_TOOLS: Record<"onchain" | "technical" | "sentiment" | "news
 // EVM swaps RugCheck tools for GoPlus (same slots, same cap).
 export function analystToolsFor(chain: ChainId): Record<"onchain" | "technical" | "sentiment" | "news", string[]> {
   if (chain === "solana") return ANALYST_TOOLS;
+  if (chain === "bitcoin") {
+    return {
+      onchain: ["get_btc_overview", "get_token_profile"],
+      technical: ["get_price_history", "get_token_profile"],
+      sentiment: ["get_coin_metadata", "get_token_profile"],
+      news: ["get_coin_metadata", "get_token_profile"],
+    };
+  }
   return {
     onchain: ["get_token_profile", "get_top_pools", "get_goplus_risk"],
     technical: ["get_token_profile", "get_price_history"],

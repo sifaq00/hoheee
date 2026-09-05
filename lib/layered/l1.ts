@@ -4,6 +4,7 @@ import { MISSING_REPORT } from "@/lib/agents/types";
 import { stripToolCallXml } from "@/lib/layered/validate";
 import type { AgentEvent, TokenSummary } from "@/lib/pipeline/state";
 import { getTokenSummaryFor } from "@/lib/tools/dexscreener";
+import { getBtcSummary } from "@/lib/tools/coingecko";
 import { analystToolsFor } from "@/lib/tools/index";
 import { mintChain } from "./chain";
 import type { L1Result } from "./types";
@@ -23,7 +24,7 @@ export async function runL1(chain: ChainId, mint: string, opts: { signal?: Abort
   if (!validateAddress(chain, mint)) throw new Error(chain === "solana" ? "Invalid Solana mint address" : "Invalid contract address");
   let summary: TokenSummary | null;
   try {
-    summary = await getTokenSummaryFor(chain, mint);
+    summary = chain === "bitcoin" ? await getBtcSummary() : await getTokenSummaryFor(chain, mint);
   } catch {
     throw new Error("data source unreachable");
   }

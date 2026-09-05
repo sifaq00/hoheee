@@ -2,6 +2,8 @@ import type { ChainId } from "@/lib/chains";
 import { CHAINS } from "@/lib/chains";
 import type { TokenSummary } from "@/lib/pipeline/state";
 import { fmtNum as num } from "../format";
+import { getCoinMetadataFor } from "./coingecko";
+import { getBtcOverview } from "./mempool";
 
 export interface DexPair {
   chainId?: string;
@@ -22,7 +24,9 @@ const API = "https://api.dexscreener.com/latest/dex/tokens";
 
 function chainApi(chain: ChainId, mint: string): string {
   if (chain === "solana") return `${API}/${mint}`;
-  return `https://api.dexscreener.com/tokens/v1/${CHAINS[chain].dexChainId}/${mint}`;
+  const dex = CHAINS[chain].dexChainId;
+  if (!dex) throw new Error("DexScreener unavailable for this chain");
+  return `https://api.dexscreener.com/tokens/v1/${dex}/${mint}`;
 }
 
 async function fetchPairs(mint: string): Promise<DexPair[] | null> {
@@ -102,6 +106,10 @@ export async function getTokenProfile(mint: string): Promise<string> {
 
 /** Chain-aware token profile. */
 export async function getTokenProfileFor(chain: ChainId, mint: string): Promise<string> {
+  if (chain === "bitcoin") {
+    const [stats, meta] = await Promise.all([getBtcOverview(), getCoinMetadataFor("bitcoin", "BTC")]);
+    return `${stats}\n${meta}`;
+  }
   return withError("DexScreener", mint, async () => {
     const pairs = await fetchPairsFor(chain, mint);
     if (!pairs) return "Token not found on DexScreener (no pairs)";
@@ -128,6 +136,7 @@ export async function getTopPools(mint: string): Promise<string> {
 
 /** Chain-aware top pools. */
 export async function getTopPoolsFor(chain: ChainId, mint: string): Promise<string> {
+  if (chain === "bitcoin") return "Native asset: no DEX pools. Bitcoin trades on centralized exchanges and OTC desks.";
   return withError("DexScreener", mint, async () => {
     const pairs = await fetchPairsFor(chain, mint);
     if (!pairs) return "Token not found on DexScreener (no pairs)";

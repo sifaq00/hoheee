@@ -154,8 +154,8 @@ describe("getPriceHistory", () => {
 });
 
 describe("registry", () => {
-  it("exposes 7 specs and 6 base executors", () => {
-    expect(Object.keys(TOOL_SPECS).length).toBe(7);
+  it("exposes 8 specs and 6 base executors", () => {
+    expect(Object.keys(TOOL_SPECS).length).toBe(8);
     expect(Object.keys(TOOL_EXECUTORS).length).toBe(6);
   });
 

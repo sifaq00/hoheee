@@ -1,5 +1,6 @@
 import type { ChainId } from "@/lib/chains";
 import { CHAINS } from "@/lib/chains";
+import type { TokenSummary } from "@/lib/pipeline/state";
 import { fmtNum as num } from "../format";
 
 const BASE = "https://api.coingecko.com/api/v3";
@@ -20,6 +21,7 @@ interface CoinMeta {
     ath?: { usd?: number };
     ath_change_percentage?: { usd?: number };
     total_volume?: { usd?: number };
+    price_change_percentage_24h?: number;
   };
 }
 
@@ -42,7 +44,10 @@ async function cgFetch(url: string): Promise<unknown> {
 }
 
 async function resolveIdFor(chain: ChainId, mint: string): Promise<string> {
-  const data = await cgFetch(`${BASE}/coins/${CHAINS[chain].geckoPlatform}/contract/${mint}`);
+  if (chain === "bitcoin") return "bitcoin";
+  const platform = CHAINS[chain].geckoPlatform;
+  if (!platform) throw new NotListedError("no platform");
+  const data = await cgFetch(`${BASE}/coins/${platform}/contract/${mint}`);
   const id = (data as { id?: string }).id;
   if (!id) throw new NotListedError("no id");
   return id;
@@ -59,6 +64,24 @@ function withCgError(name: string, mint: string, fn: () => Promise<string>): Pro
 /** Resolve mint -> CoinGecko id, then fetch coin metadata (categories, description, sentiment, market data). */
 export async function getCoinMetadata(mint: string): Promise<string> {
   return getCoinMetadataFor("solana", mint);
+}
+
+/** Native BTC summary from CoinGecko (no contract to resolve). */
+export async function getBtcSummary(): Promise<TokenSummary | null> {
+  try {
+    const c = (await cgFetch(`${BASE}/coins/bitcoin?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false`)) as CoinMeta;
+    const md = c.market_data;
+    if (md?.current_price?.usd === undefined) return null;
+    return {
+      name: "Bitcoin",
+      symbol: "BTC",
+      priceUsd: String(md.current_price.usd),
+      liquidityUsd: md.total_volume?.usd ?? 0,
+      priceChange24h: md.price_change_percentage_24h ?? 0,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /** Chain-aware metadata. */

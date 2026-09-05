@@ -31,6 +31,7 @@ const SAMPLES: Record<ChainId, { label: string; mint: string }[]> = {
     { label: "WETH", mint: "0x4200000000000000000000000000000000000006" },
     { label: "TOSHI", mint: "0xac1bd7fA6a0c454fFebc0a9Aa4AbdfA5Becd0d8d5" },
   ],
+  bitcoin: [{ label: "BTC", mint: "BTC" }],
 };
 
 export default function MintForm({
