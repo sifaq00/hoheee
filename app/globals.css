@@ -142,69 +142,112 @@ body {
   .land-marquee { width: 100%; flex-wrap: wrap; justify-content: center; }
 }
 
-/* Interactive layer stack (factory slices). */
-.land-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* Isometric layer cake (factory slices). */
+.iso-scene {
+  --s: min(200px, 56vw);
+  --t: 46px;
+  --step: 58px;
+  position: relative;
+  width: calc(var(--s) * 1.45);
+  height: calc(var(--s) * 0.78 + 4 * var(--step));
+  margin: 8px auto 0;
+  transform: rotateX(54deg) rotateZ(45deg);
+  transform-style: preserve-3d;
 }
 
-.land-slice {
+.iso-slab {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: var(--s);
+  height: var(--s);
+  margin-left: calc(var(--s) / -2);
+  transform: translateZ(calc(var(--z, 0) * var(--step)));
+  transform-style: preserve-3d;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.35s cubic-bezier(0.3, 1.18, 0.4, 1);
+}
+
+.iso-slab:hover, .iso-slab:focus-visible {
+  transform: translateZ(calc(var(--z, 0) * var(--step) + 14px));
+}
+
+.iso-slab:focus-visible {
+  outline: 2px solid #16a34a;
+  outline-offset: 4px;
+}
+
+.iso-top {
+  position: absolute;
+  inset: 0;
+  transform: translateZ(var(--t));
   display: flex;
   align-items: center;
-  gap: 14px;
-  cursor: pointer;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 8px;
+  justify-content: center;
   background: #fff;
-  padding: 16px 20px;
-  text-align: left;
-  transform: translateX(calc(var(--i, 0) * 14px));
-  width: calc(100% - var(--i, 0) * 14px);
-  transition:
-    transform 0.35s cubic-bezier(0.3, 1.18, 0.4, 1),
-    background 0.18s ease,
-    border-color 0.18s ease;
+  border: 1px solid #d0d5db;
 }
 
-.land-slice:hover {
-  transform: translateX(calc(var(--i, 0) * 14px + 10px));
-}
-
-.land-slice:focus-visible {
-  outline: 2px solid #22c55e;
-  outline-offset: 2px;
-}
-
-.land-slice-on {
+.iso-on .iso-top {
   background: #22c55e;
-  border-color: #22c55e;
+  border-color: #16a34a;
 }
 
-.land-slice-id {
+.iso-id {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 44px;
   font-weight: 900;
-  color: rgba(22, 163, 74, 0.35);
-  min-width: 44px;
+  color: #d4d4d8;
 }
 
-.land-slice-on .land-slice-id {
-  color: rgba(0, 0, 0, 0.55);
+.iso-mark {
+  width: 38%;
+  height: 38%;
+  object-fit: contain;
 }
 
-.land-slice-name {
+.iso-face {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-family: var(--font-gmono);
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #52525b;
+  color: #71717a;
+  background: #f3f5f6;
+  border: 1px solid #d0d5db;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
-.land-slice-on .land-slice-name {
+.iso-on .iso-face {
   color: #000;
   font-weight: 700;
+}
+
+.iso-left {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--t);
+  transform-origin: bottom;
+  transform: rotateX(-90deg);
+}
+
+.iso-right {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: var(--t);
+  transform-origin: right;
+  transform: rotateY(90deg);
+  writing-mode: vertical-rl;
 }
 
 .land-stack-detail {
