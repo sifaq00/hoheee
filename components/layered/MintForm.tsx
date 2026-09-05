@@ -74,6 +74,20 @@ export default function MintForm({ disabled, onStart }: { disabled: boolean; onS
     onStart(trimmed);
   }, [valid, disabled, preview, trimmed, onStart]);
 
+  const trySample = useCallback(
+    (value: string) => {
+      if (disabled) return;
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      setMint(value);
+      setTouched(true);
+      setPreviewStatus("none");
+      setPreview(null);
+      setPreviewError("");
+      void fetchPreview(value);
+    },
+    [disabled, fetchPreview]
+  );
+
   const fields = preview
     ? { name: preview.summary.name, symbol: preview.summary.symbol, price: preview.summary.priceUsd, liquidity: fmtNum(preview.summary.liquidityUsd), change: preview.summary.priceChange24h }
     : null;
@@ -151,15 +165,32 @@ export default function MintForm({ disabled, onStart }: { disabled: boolean; onS
       )}
 
       {!disabled && (
-        <button
-          type="button"
-          disabled={!canRun}
-          onClick={handleStart}
-          title={valid && previewStatus !== "ok" ? "Waiting for token preview…" : undefined}
-          className="cursor-pointer rounded border border-[#22c55e] px-4 py-2 font-mono text-sm font-bold text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black disabled:cursor-not-allowed disabled:border-zinc-700 disabled:text-zinc-600 disabled:hover:bg-transparent"
-        >
-          Run analysis
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={!canRun}
+            onClick={handleStart}
+            title={valid && previewStatus !== "ok" ? "Waiting for token preview…" : undefined}
+            className="cursor-pointer rounded border border-[#22c55e] bg-[#22c55e] px-5 py-2 font-mono text-sm font-bold text-black transition-colors hover:bg-transparent hover:text-[#22c55e] disabled:cursor-not-allowed disabled:border-zinc-700 disabled:bg-transparent disabled:text-zinc-600"
+          >
+            Run analysis
+          </button>
+          <span className="font-mono text-[10px] tracking-[0.18em] text-zinc-600 uppercase">try →</span>
+          {[
+            { label: "BONK", mint: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263" },
+            { label: "WIF", mint: "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm" },
+            { label: "JUP", mint: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN" },
+          ].map((s) => (
+            <button
+              key={s.label}
+              type="button"
+              onClick={() => trySample(s.mint)}
+              className="cursor-pointer rounded border border-zinc-800 px-2.5 py-1 font-mono text-xs text-zinc-400 transition-colors hover:border-[#22c55e] hover:text-[#22c55e]"
+            >
+              ${s.label}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

@@ -95,6 +95,23 @@ export default function Analyze() {
         <main className="mt-6 flex flex-col gap-4">
           {!showFeed && (
             <>
+              <div className="flex flex-col gap-2 py-2 text-center">
+                <p className="font-mono text-[10px] tracking-[0.3em] text-[#22c55e] uppercase">Token research terminal</p>
+                <h1 className="font-display text-3xl font-black tracking-tight text-white sm:text-4xl">
+                  LOCK A TARGET. <span className="text-[#22c55e]">MEET THE DESK.</span>
+                </h1>
+                <p className="mx-auto max-w-lg font-mono text-xs leading-relaxed text-zinc-500">
+                  Paste a mint — 4 scouts, a 2-round clash, risk review and a sealed verdict stream live below.
+                </p>
+                <ol className="mx-auto mt-1 flex flex-wrap items-center justify-center gap-2 font-mono text-[10px] tracking-[0.18em] text-zinc-500 uppercase">
+                  {["L1 scouts", "L2 clash", "L3 risk", "L4 verdict"].map((s, i) => (
+                    <li key={s} className="flex items-center gap-2">
+                      {i > 0 && <span aria-hidden="true" className="text-zinc-700">→</span>}
+                      <span className="rounded border border-white/10 bg-black/60 px-2 py-1">{s}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
               <SectionPanel index="//" title="Target lock" meta="mainnet">
                 {!connected && (
                   <p className="mb-3 rounded border border-[#22c55e]/40 bg-[#22c55e]/5 px-3 py-2 font-mono text-xs text-zinc-300">
