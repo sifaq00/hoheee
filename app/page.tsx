@@ -7,6 +7,7 @@ import Principles from "@/components/landing/Principles";
 import LiveDemo from "@/components/landing/LiveDemo";
 import ReportAnatomy from "@/components/landing/ReportAnatomy";
 import StatsLedger from "@/components/landing/StatsLedger";
+import LatestVerdicts from "@/components/landing/LatestVerdicts";
 import Faq from "@/components/landing/Faq";
 import CtaBand from "@/components/landing/CtaBand";
 import Footer from "@/components/landing/Footer";
@@ -24,6 +25,7 @@ export default function Landing() {
         <LiveDemo />
         <ReportAnatomy />
         <StatsLedger />
+        <LatestVerdicts />
         <Faq />
         <CtaBand />
       </main>
