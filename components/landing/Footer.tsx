@@ -37,7 +37,7 @@ export default function Footer() {
       </div>
       <div className="border-t border-black/[0.07]">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-5">
-          <p className="font-mono text-[11px] text-zinc-500">© 2026 Aries — Solana token research squad.</p>
+          <p className="font-mono text-[11px] text-zinc-500">© 2026 Aries — token research squad.</p>
           <a href="#top" className="cursor-pointer font-mono text-[11px] text-zinc-500 transition-colors hover:text-[#15803d]">
             Back to top ↑
           </a>

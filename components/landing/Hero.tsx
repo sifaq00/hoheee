@@ -11,8 +11,8 @@ export default function Hero() {
       <div className="relative mx-auto grid max-w-6xl items-start gap-12 px-4 pt-14 pb-16 md:grid-cols-2 md:pt-20 md:pb-20">
         <div className="text-center md:text-left">
           <Reveal>
-            <p className="inline-flex items-center gap-2 rounded-md border border-[#16a34a]/30 bg-[#22c55e]/10 px-3 py-1.5 font-mono text-[10px] tracking-[0.2em] text-[#15803d] uppercase">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#16a34a]" /> Solana token research squad
+            <p className="inline-flex items-center gap-2.5 border border-black/15 bg-white px-3 py-1.5 font-mono text-[10px] font-bold tracking-[0.24em] text-black uppercase shadow-[2px_2px_0_0_#16a34a]">
+              Autonomous token research squad
             </p>
           </Reveal>
           <Reveal delay={90}>

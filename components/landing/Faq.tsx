@@ -5,7 +5,7 @@ const FAQS = [
   { q: "Is this financial advice?", a: "No. Aries is a research tool. Output is automated analysis with stated confidence — it can be wrong, especially on new tokens with thin data." },
   { q: "Do I need a wallet?", a: "Yes. Connect a Solana wallet to run analysis — reports save to your wallet history automatically." },
   { q: "What does a run cost me?", a: "Nothing during the demo — but each run burns real model tokens behind the scenes, so runs are throttled per IP." },
-  { q: "Which tokens work?", a: "Solana mints with DexScreener coverage. Very new tokens analyze fine, but expect MISSING reports and lower confidence." },
+  { q: "Which tokens work?", a: "Any Solana mint today, with DexScreener coverage — more networks are next. Very new tokens analyze fine, but expect MISSING reports and lower confidence." },
 ];
 
 export default function Faq() {

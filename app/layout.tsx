@@ -18,8 +18,8 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  title: "Aries — Solana Token Research",
-  description: "Research tool, not financial advice.",
+  title: "Aries — Token Research",
+  description: "Multi-agent token research. Not financial advice.",
   icons: { icon: "/logo.webp", apple: "/logo.webp" },
 };
 
