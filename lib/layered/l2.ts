@@ -35,7 +35,7 @@ export async function runL2(
         },
       ];
       try {
-        const text = await invokeWithRetry(msgs, { maxTokens: 500, timeoutMs: 12000, signal: opts.signal });
+        const text = await invokeWithRetry(msgs, { maxTokens: 500, timeoutMs: 20000, signal: opts.signal });
         const turn: DebateTurn = { phase: "invest", round, side, text };
         debate.push(turn);
         opts.emit?.(turn);
@@ -47,4 +47,5 @@ export async function runL2(
   }
   return { debate, errors, chain: mintChain("l2", input.mint, debate) };
 }
+
 

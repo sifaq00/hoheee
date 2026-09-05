@@ -30,11 +30,16 @@ export async function runL1(mint: string, opts: { signal?: AbortSignal; emit?: (
   opts.emit?.({ type: "token_found", name: summary.name, symbol: summary.symbol, price: summary.priceUsd, liquidity: summary.liquidityUsd, change24h: summary.priceChange24h });
   const slots = Object.keys(ROLES) as Slot[];
   const settled = await Promise.allSettled(
-    slots.map(async (agent) => {
-      // One analyst-level retry: transient LLM/tool hiccups are common,
+    slots.map(async (agent, i) => {
+      // Stagger launches: 4 analysts hammering the model + CoinGecko at the
+      // same millisecond is how rate limits happen.
+      if (i > 0 && !opts.signal?.aborted) {
+        await new Promise((r) => setTimeout(r, i * 1500));
+      }
+      // Three analyst-level attempts: transient LLM/tool hiccups are common,
       // MISSING is the last resort, not the first.
       let lastErr: unknown = new Error("empty report");
-      for (let attempt = 0; attempt < 2; attempt++) {
+      for (let attempt = 0; attempt < 3; attempt++) {
         if (opts.signal?.aborted) break;
         try {
           const report = await runAnalyst({
@@ -45,7 +50,7 @@ export async function runL1(mint: string, opts: { signal?: AbortSignal; emit?: (
             toolNames: ANALYST_TOOLS[agent],
             cap: 1,
             maxTokens: 700,
-            timeoutMs: 12000,
+            timeoutMs: 20000,
             signal: opts.signal,
             emit: (e) => opts.emit?.(e),
           });

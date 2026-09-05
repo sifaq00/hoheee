@@ -23,7 +23,7 @@ async function decideWithRetry(msgs: ChatMessage[], signal?: AbortSignal): Promi
   let last = "";
   for (let attempt = 0; attempt < 2; attempt++) {
     if (signal?.aborted) break;
-    last = await invokeWithRetry(msgs, { maxTokens: 1000, timeoutMs: 15000, signal });
+    last = await invokeWithRetry(msgs, { maxTokens: 1000, timeoutMs: 25000, signal });
     if (last.trim()) return last;
   }
   return last;
@@ -77,4 +77,5 @@ export async function runL4(
   });
   return { decision, rating: parsed.rating, confidence: parsed.confidence, id };
 }
+
 

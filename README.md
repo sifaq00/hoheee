@@ -75,8 +75,8 @@ Each layer is one SSE endpoint (`POST /api/l1` … `POST /api/l4`), chained by
 the browser with an HMAC chain token (`CHAIN_SECRET`) so layers cannot be
 called out of order or forged — this also inherits the L1 rate limit
 (10 runs/hour/IP via Upstash, fail-open without env). Every step streams
-progress events plus a final `result` event. Soft budgets: L1 <60s, L2 <90s,
-L3 <60s, L4 <30s — far under the Vercel Hobby 300s ceiling.
+progress events plus a final `result` event. Soft budgets: L1 <90s, L2 <180s,
+L3 <120s, L4 <60s — each under the Vercel Hobby 300s ceiling.
 
 Key files: `lib/layered/` (L1-L4 flow, chain, SSE, Supabase, reducer),
 `lib/agents/` (`runAnalyst` runtime + shared types), `lib/tools/`
