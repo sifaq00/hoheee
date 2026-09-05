@@ -18,7 +18,7 @@ Create `.env.local` in the repo root:
 ```bash
 LLM_API_URL=https://token-plan-sgp.xiaomimimo.com/v1/chat/completions
 LLM_API_KEY=<your-key>
-LLM_MODEL=mimo-v2.5-pro
+LLM_MODEL=mimo-v2.5
 ```
 
 Then start the dev server:
@@ -37,43 +37,38 @@ Text pipeline diagram — one run flows left to right:
 ```text
 mint → token summary (DexScreener)
   → 4 analysts in parallel: onchain | technical | sentiment | news
-  → bull vs bear debate (invest rounds)
-  → research manager synthesis
-  → trader plan
-  → risk debate (aggressive vs conservative vs neutral)
-  → portfolio manager → final decision (RATING / CONFIDENCE / KEY RISKS / ...)
+  → bull vs bear debate (1 round)
+  → decider → final decision (RATING / CONFIDENCE / KEY RISKS / ...)
 ```
 
 Each stage streams over Server-Sent Events on `POST /api/analyze`:
 
 ```text
-token_found → agent_start → reasoning* → tool_call → tool_result
-  → agent_report (4 analysts + trader share this channel)
-  → debate_turn (invest + risk phases) → decision → done
+token_found → agent_start → tool_call → tool_result
+  → agent_report (4 analysts share this channel)
+  → debate_turn (invest phase) → decision → done
 ```
 
 Key files: `lib/pipeline/orchestrator.ts` (pipeline), `lib/agents/`
-(analysts, debaters, manager, trader, risk team, portfolio manager),
-`lib/tools/` (dexscreener, rugcheck, coingecko fetchers), `app/api/analyze/route.ts`
+(`runAnalyst` runtime + shared types), `lib/tools/` (dexscreener, rugcheck,
+coingecko fetchers + analyst tool lists), `app/api/analyze/route.ts`
 (SSE framing), `app/page.tsx` + `components/` (live feed UI).
 
 ## Tests
 
 ```bash
-npm test                       # fast unit tests only (15 tests, seconds)
-npm run test:e2e               # live e2e — needs dev server + ~15-45min
+npm test                       # fast unit tests only (seconds)
+npm run test:e2e               # live e2e — needs dev server + ~1 minute
 ```
 
 The e2e test (`tests/e2e.test.ts`) posts a real mint to a running dev server
 and asserts the full SSE event chain plus a non-empty decision. It needs
-`npm run dev` on port 3000 first. Full runs take 13-20 minutes, so e2e runs on
-a nightly cadence, not per-PR.
+`npm run dev` on port 3000 first.
 
 ## Known Limits
 
-- **Vercel free 60s wall:** a full run takes 13-20 minutes, far beyond the
-  serverless timeout. Full runs are local-dev only (`npm run dev`); do not
-  deploy the analyze route to Vercel free tier expecting completion.
+- **Vercel free 60s wall:** a run takes under a minute, inside the
+  serverless timeout. The analyze route is deployable to Vercel free tier.
 - **CoinGecko public-tier rate limits:** unauthenticated calls are throttled
   (HTTP 429). Analysts may call CoinGecko concurrently, and each fetcher
   degrades gracefully to an error string the analysts handle honestly.
@@ -90,7 +85,7 @@ Reports generate in CI via manual dispatch — the laptop can stay off.
 
 1. Open the repo on GitHub → Actions → "Generate report" → Run workflow.
 2. Enter the `mint` input (Solana base58 address, 32-44 chars).
-3. The job runs `npx tsx scripts/generate-report.ts "<mint>"` (15-45 minutes),
+3. The job runs `npx tsx scripts/generate-report.ts "<mint>"` (about a minute),
    commits the new `runs/<runId>.json`, and pushes. The push triggers a Vercel
    rebuild that pre-renders the new `/r/<runId>` page.
 
@@ -100,7 +95,7 @@ Required repo secrets:
 | ------------- | ------------------------------ |
 | `LLM_API_URL` | Chat-completions endpoint URL  |
 | `LLM_API_KEY` | API key for the LLM endpoint   |
-| `LLM_MODEL`   | Model name (e.g. mimo-v2.5-pro)|
+| `LLM_MODEL`   | Model name (e.g. mimo-v2.5)      |
 
 Secrets pass via env only and never print in logs. Do not add `[skip ci]` to
 the report commit message — Vercel skips such commits and auto-publish would
@@ -118,8 +113,8 @@ CMS for the static report pages); never gitignore `runs/`.
 
 ## Live analysis (root)
 
-Enter a mint at `/`. `POST /api/analyze` streams the flash chain (mini
+Enter a mint at `/`. `POST /api/analyze` streams the chain (mini
 analysts + 1 debate round + decider, `mimo-v2.5`) via SSE, under 45 seconds.
 Vercel env (Production): `LLM_API_URL`, `LLM_API_KEY`, `LLM_MODEL=mimo-v2.5`.
-Local/Actions deep runs keep `LLM_MODEL=mimo-v2.5-pro`. Demo guardrails:
-~12s per LLM call, partial failures continue as MISSING reports.
+Demo guardrails: ~12s per LLM call, 10 runs/hour/IP, partial failures
+continue as MISSING reports.

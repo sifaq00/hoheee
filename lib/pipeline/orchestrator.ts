@@ -1,70 +1,89 @@
-import { CONFIG } from "@/lib/pipeline/config";
+import type { ChatMessage } from "@/lib/llm";
+import { runAnalyst } from "@/lib/agents/shared";
+import {
+  MISSING_REPORT,
+  MISSING_REPORT_RULE,
+  formatReports,
+  invokeWithRetry,
+  type ReportsBundle,
+} from "@/lib/agents/types";
 import type { AgentEvent, AgentId, PipelineState, TokenSummary } from "@/lib/pipeline/state";
-import { runOnchainAnalyst } from "@/lib/agents/onchain";
-import { runTechnicalAnalyst } from "@/lib/agents/technical";
-import { runSentimentAnalyst } from "@/lib/agents/sentiment";
-import { runNewsAnalyst } from "@/lib/agents/news";
-import { runBull } from "@/lib/agents/bull";
-import { runBear } from "@/lib/agents/bear";
-import { runResearchManager } from "@/lib/agents/research-manager";
-import { runTrader } from "@/lib/agents/trader";
-import { runRiskDebater, type RiskSide } from "@/lib/agents/risk-team";
-import { runPortfolioManager } from "@/lib/agents/portfolio-manager";
-import { MISSING_REPORT, type ReportsBundle } from "@/lib/agents/types";
 import { getTokenSummary } from "@/lib/tools/dexscreener";
+import { ANALYST_TOOLS } from "@/lib/tools/index";
 
 export const MINT_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
-export class TokenNotFoundError extends Error {
-  constructor(mint: string) {
-    super(`Token not found: ${mint}`);
-    this.name = "TokenNotFoundError";
-  }
+const ONCHAIN_ROLE =
+  "You are the onchain analyst for a Solana token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): holder concentration, liquidity depth, mint/freeze authority, biggest onchain risk. Numbers only from tool output — never invent. You may call ONLY these tools: get_token_profile, get_top_pools, get_risk_report, get_holder_distribution. Any other tool name fails — never invent tools.";
+const TECHNICAL_ROLE =
+  "You are the technical analyst for a Solana token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): price trend, momentum, liquidity venues. Numbers only from tool output — never invent. You may call ONLY these tools: get_token_profile, get_price_history. Any other tool name fails — never invent tools.";
+const SENTIMENT_ROLE =
+  "You are the sentiment analyst for a Solana token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): community traction and social momentum signals. Never invent engagement numbers. You may call ONLY these tools: get_token_profile, get_coin_metadata. Any other tool name fails — never invent tools.";
+const NEWS_ROLE =
+  "You are the news analyst for a Solana token. Use at most ONE tool call, then write ONE short paragraph (max 5 sentences): recent catalysts or headlines affecting the token. No tools beyond the one call; state gaps honestly. You may call ONLY these tools: get_coin_metadata, get_token_profile. Any other tool name fails — never invent tools.";
+
+const BULL_SYSTEM =
+  "You are a Bull Analyst for a Solana token. Argue FOR investing in max 150 words, citing only the mini-reports. No tools. English.";
+const BEAR_SYSTEM =
+  "You are a Bear Analyst for a Solana token. Argue AGAINST investing in max 150 words, citing only the mini-reports. No tools. English.";
+const DECIDER_SYSTEM =
+  "You are the Portfolio Manager. Decide fast from mini-reports and one debate round. No tools. English.";
+
+// The fast model starves at cap 1 and writes wishful <tool_call> blocks as
+// text into its report. Guard the prompt and strip leftovers below.
+const OUTPUT_GUARD =
+  " Output findings only: never emit <tool_call> blocks, planning notes, or meta-commentary about your next steps.";
+
+export function stripToolCallXml(text: string): string {
+  return text
+    .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
-// Cap per-report chars passed downstream so multi-round debates stay bounded.
-const MAX_REPORT_CHARS = 6000;
-
-function truncate(text: string): string {
-  return text.length > MAX_REPORT_CHARS ? text.slice(0, MAX_REPORT_CHARS) + "\n[truncated]" : text;
-}
-
-function truncatedBundle(reports: ReportsBundle): ReportsBundle {
-  return {
-    onchain: truncate(reports.onchain),
-    technical: truncate(reports.technical),
-    sentiment: truncate(reports.sentiment),
-    news: truncate(reports.news),
-  };
-}
-
-async function fetchSummary(mint: string): Promise<TokenSummary> {
-  let summary: TokenSummary | null;
-  try {
-    summary = await getTokenSummary(mint);
-  } catch {
-    throw new Error("data source unreachable");
-  }
-  if (!summary) throw new TokenNotFoundError(mint);
-  return summary;
-}
+const DECIDER_STRUCTURE =
+  "Your output MUST be machine-parseable with this exact structure:\n" +
+  "RATING: <exactly one of Buy, Overweight, Hold, Underweight, Sell>\n" +
+  "CONFIDENCE: <exactly one of Low, Medium, High>\n" +
+  "KEY RISKS:\n" +
+  "- <bullet per risk>\n" +
+  "EXECUTIVE SUMMARY\n" +
+  "<concise action plan>\n" +
+  "INVESTMENT THESIS\n" +
+  "<concise reasoning>";
 
 type AnalystSlot = "onchain" | "technical" | "sentiment" | "news";
 
-async function runAnalystSlot(
+async function runFlashSlot(
   agent: AnalystSlot,
   mint: string,
   summary: TokenSummary,
+  systemRole: string,
+  toolNames: string[],
   emit: (e: AgentEvent) => void,
-  run: (mint: string, summary: TokenSummary, emit: (e: AgentEvent) => void) => Promise<string>
+  signal?: AbortSignal
 ): Promise<string> {
   emit({ type: "agent_start", agent });
+  if (signal?.aborted) return MISSING_REPORT;
   try {
-    const report = await run(mint, summary, emit);
-    emit({ type: "agent_report", agent, report });
-    return report;
+    const report = await runAnalyst({
+      agent,
+      mint,
+      summary,
+      systemRole: systemRole + OUTPUT_GUARD,
+      toolNames,
+      cap: 1,
+      maxTokens: 400,
+      timeoutMs: 12000,
+      signal,
+      emit,
+    });
+    const clean = stripToolCallXml(report);
+    emit({ type: "agent_report", agent, report: clean });
+    return clean;
   } catch (err) {
-    emit({ type: "error", agent, message: err instanceof Error ? err.message : String(err) });
+    if (!signal?.aborted) emit({ type: "error", agent, message: err instanceof Error ? err.message : String(err) });
     return MISSING_REPORT;
   }
 }
@@ -75,13 +94,20 @@ function err(emit: (e: AgentEvent) => void, agent: AgentId, unknown: unknown): v
 
 export async function runAnalysis(
   mint: string,
-  emit: (event: AgentEvent) => void,
+  emit: (e: AgentEvent) => void,
   opts: { signal?: AbortSignal } = {}
 ): Promise<PipelineState> {
   const signal = opts.signal;
   if (!MINT_REGEX.test(mint)) throw new Error("Invalid Solana mint address");
 
-  const summary = await fetchSummary(mint);
+  let summary: TokenSummary | null;
+  try {
+    summary = await getTokenSummary(mint);
+  } catch {
+    throw new Error("data source unreachable");
+  }
+  if (!summary) throw new Error(`Token not found: ${mint}`);
+
   emit({
     type: "token_found",
     name: summary.name,
@@ -101,33 +127,18 @@ export async function runAnalysis(
     finalDecision: "",
   };
 
-  // Layer 1: four analysts, parallel or sequential per config.
-  const slots: { agent: AnalystSlot; run: typeof runOnchainAnalyst }[] = [
-    { agent: "onchain", run: runOnchainAnalyst },
-    { agent: "technical", run: runTechnicalAnalyst },
-    { agent: "sentiment", run: runSentimentAnalyst },
-    { agent: "news", run: runNewsAnalyst },
+  const slots: { agent: AnalystSlot; role: string; tools: string[] }[] = [
+    { agent: "onchain", role: ONCHAIN_ROLE, tools: ANALYST_TOOLS.onchain },
+    { agent: "technical", role: TECHNICAL_ROLE, tools: ANALYST_TOOLS.technical },
+    { agent: "sentiment", role: SENTIMENT_ROLE, tools: ANALYST_TOOLS.sentiment },
+    { agent: "news", role: NEWS_ROLE, tools: ANALYST_TOOLS.news },
   ];
-  if (CONFIG.PARALLEL_ANALYSTS) {
-    if (!signal?.aborted) {
-      const settled = await Promise.allSettled(
-        slots.map((s) => runAnalystSlot(s.agent, mint, summary, emit, s.run))
-      );
-      settled.forEach((r, i) => {
-        state.reports[slots[i].agent] = r.status === "fulfilled" ? r.value : MISSING_REPORT;
-      });
-    } else {
-      for (const s of slots) state.reports[s.agent] = MISSING_REPORT;
-    }
-  } else {
-    for (const s of slots) {
-      if (signal?.aborted) {
-        state.reports[s.agent] = MISSING_REPORT;
-        continue;
-      }
-      state.reports[s.agent] = await runAnalystSlot(s.agent, mint, summary, emit, s.run);
-    }
-  }
+  const settled = await Promise.allSettled(
+    slots.map((s) => runFlashSlot(s.agent, mint, summary, s.role, s.tools, emit, signal))
+  );
+  settled.forEach((r, i) => {
+    state.reports[slots[i].agent] = r.status === "fulfilled" ? r.value : MISSING_REPORT;
+  });
   const reports = {
     onchain: state.reports.onchain ?? MISSING_REPORT,
     technical: state.reports.technical ?? MISSING_REPORT,
@@ -135,85 +146,62 @@ export async function runAnalysis(
     news: state.reports.news ?? MISSING_REPORT,
   } satisfies ReportsBundle;
 
-  // Layer 2: bull/bear debate.
-  let lastBullArg = "";
-  let lastBearArg = "";
-  for (let round = 1; round <= CONFIG.MAX_DEBATE_ROUNDS; round++) {
-    if (signal?.aborted) break;
-    try {
-      const bullArg = await runBull(truncatedBundle(reports), state.debateHistory, lastBearArg);
-      lastBullArg = bullArg;
-      state.debateHistory += `Bull (round ${round}):\n${bullArg}\n\n`;
-      emit({ type: "debate_turn", phase: "invest", round, side: "bull", text: bullArg });
-    } catch (e) {
-      err(emit, "bull", e);
-    }
-    try {
-      const bearArg = await runBear(truncatedBundle(reports), state.debateHistory, lastBullArg);
-      lastBearArg = bearArg;
-      state.debateHistory += `Bear (round ${round}):\n${bearArg}\n\n`;
-      emit({ type: "debate_turn", phase: "invest", round, side: "bear", text: bearArg });
-    } catch (e) {
-      err(emit, "bear", e);
-    }
-  }
-
-  // Research manager synthesizes the debate into an investment plan.
-  try {
-    if (signal?.aborted) throw new Error("aborted");
-    state.investmentPlan = await runResearchManager(truncatedBundle(reports), state.debateHistory);
-    emit({
-      type: "debate_turn",
-      phase: "invest",
-      round: CONFIG.MAX_DEBATE_ROUNDS,
-      side: "research_manager",
-      text: state.investmentPlan,
-    });
+  let bullArg = "";
+  if (!signal?.aborted) try {
+    const msgs: ChatMessage[] = [
+      { role: "system", content: BULL_SYSTEM },
+      {
+        role: "user",
+        content:
+          `Mini-reports:\n${formatReports(reports)}\n\n` +
+          `Last bear argument:\n(none yet)\n\n` +
+          `${MISSING_REPORT_RULE}\n\n` +
+          "Rebut the bear case directly or open with your strongest case.",
+      },
+    ];
+    bullArg = await invokeWithRetry(msgs, { maxTokens: 300, timeoutMs: 12000, signal });
+    state.debateHistory += `Bull (round 1):\n${bullArg}\n\n`;
+    emit({ type: "debate_turn", phase: "invest", round: 1, side: "bull", text: bullArg });
   } catch (e) {
-    err(emit, "research_manager", e);
+    if (!signal?.aborted) err(emit, "bull", e);
   }
 
-  // Trader turns the plan into a concrete proposal.
-  try {
-    if (signal?.aborted) throw new Error("aborted");
-    state.traderPlan = await runTrader(state.investmentPlan, truncatedBundle(reports));
-    emit({ type: "agent_report", agent: "trader", report: state.traderPlan });
+  let bearArg = "";
+  if (!signal?.aborted) try {
+    const msgs: ChatMessage[] = [
+      { role: "system", content: BEAR_SYSTEM },
+      {
+        role: "user",
+        content:
+          `Mini-reports:\n${formatReports(reports)}\n\n` +
+          `Bull argument:\n${bullArg || "(none yet)"}\n\n` +
+          `${MISSING_REPORT_RULE}\n\n` +
+          "Rebut the bull case directly or open with your strongest case.",
+      },
+    ];
+    bearArg = await invokeWithRetry(msgs, { maxTokens: 300, timeoutMs: 12000, signal });
+    state.debateHistory += `Bear (round 1):\n${bearArg}\n\n`;
+    emit({ type: "debate_turn", phase: "invest", round: 1, side: "bear", text: bearArg });
   } catch (e) {
-    err(emit, "trader", e);
+    if (!signal?.aborted) err(emit, "bear", e);
   }
 
-  // Layer 3: risk debate, aggressive -> conservative -> neutral per round.
-  const sides: RiskSide[] = ["aggressive", "conservative", "neutral"];
-  for (let round = 1; round <= CONFIG.MAX_RISK_ROUNDS; round++) {
-    if (signal?.aborted) break;
-    for (const side of sides) {
-      try {
-        const arg = await runRiskDebater(
-          side,
-          state.traderPlan,
-          truncatedBundle(reports),
-          state.riskDebateHistory
-        );
-        state.riskDebateHistory += `${side} (round ${round}):\n${arg}\n\n`;
-        emit({ type: "debate_turn", phase: "risk", round, side, text: arg });
-      } catch (e) {
-        err(emit, side, e);
-      }
-    }
-  }
-
-  // Portfolio manager makes the final decision; its failure is terminal.
-  try {
-    if (signal?.aborted) throw new Error("aborted");
-    state.finalDecision = await runPortfolioManager(
-      truncatedBundle(reports),
-      state.investmentPlan,
-      state.traderPlan,
-      state.riskDebateHistory
-    );
+  if (!signal?.aborted) try {
+    const msgs: ChatMessage[] = [
+      { role: "system", content: DECIDER_SYSTEM },
+      {
+        role: "user",
+        content:
+          `Mini-reports:\n${formatReports(reports)}\n\n` +
+          `Debate transcript:\n${state.debateHistory || "(no debate held)"}\n\n` +
+          `${MISSING_REPORT_RULE}\n\n` +
+          DECIDER_STRUCTURE,
+      },
+    ];
+    state.finalDecision = await invokeWithRetry(msgs, { maxTokens: 800, timeoutMs: 15000, signal });
     emit({ type: "decision", markdown: state.finalDecision });
   } catch (e) {
-    err(emit, "portfolio_manager", e);
+    if (!signal?.aborted) err(emit, "portfolio_manager", e);
   }
 
   return state;

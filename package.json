@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "vitest run tests/tools.test.ts tests/llm.test.ts tests/flash.test.ts",
+    "test": "vitest run tests/tools.test.ts tests/llm.test.ts tests/orchestrator.test.ts",
     "test:e2e": "vitest run tests/e2e.test.ts"
   },
   "dependencies": {

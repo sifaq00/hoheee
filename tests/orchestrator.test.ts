@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { runFlashAnalysis, stripToolCallXml } from "../lib/pipeline/flash";
+import { runAnalysis, stripToolCallXml } from "../lib/pipeline/orchestrator";
 import type { AgentEvent } from "../lib/pipeline/state";
 
 const LLM_OK = (content: string) => ({
@@ -29,10 +29,10 @@ beforeEach(() => {
   }) as unknown as typeof fetch;
 });
 
-describe("runFlashAnalysis", () => {
+describe("runAnalysis", () => {
   it("emits token_found, 4 reports, 2 debate turns, decision", async () => {
     const events: AgentEvent[] = [];
-    const state = await runFlashAnalysis("DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", (e) => events.push(e));
+    const state = await runAnalysis("DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", (e) => events.push(e));
     const types = events.map((e) => e.type);
     expect(types).toContain("token_found");
     expect(types.filter((t) => t === "agent_report")).toHaveLength(4);
@@ -42,7 +42,7 @@ describe("runFlashAnalysis", () => {
   }, 60000);
 
   it("rejects invalid mint without any fetch", async () => {
-    await expect(runFlashAnalysis("xxx", () => undefined)).rejects.toThrow("Invalid Solana mint address");
+    await expect(runAnalysis("xxx", () => undefined)).rejects.toThrow("Invalid Solana mint address");
     expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(0);
   });
 });

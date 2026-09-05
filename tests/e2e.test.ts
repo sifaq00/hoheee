@@ -14,7 +14,7 @@ describe("analysis pipeline e2e", () => {
     for (const t of ["token_found", "agent_start", "tool_call", "tool_result", "agent_report", "debate_turn", "decision", "done"]) {
       expect(text).toContain(`event: ${t}`);
     }
-    // 4 analyst reports + 1 trader proposal share the agent_report channel
+    // 4 analyst reports share the agent_report channel
     const lines = text.split("\n");
     const agents: string[] = [];
     for (let i = 0; i < lines.length; i++) {
@@ -22,7 +22,7 @@ describe("analysis pipeline e2e", () => {
         agents.push((JSON.parse(lines[i + 1].slice(6)) as { agent: string }).agent);
       }
     }
-    expect(agents.sort()).toEqual(["news", "onchain", "sentiment", "technical", "trader"]);
+    expect(agents.sort()).toEqual(["news", "onchain", "sentiment", "technical"]);
     const decision = text.split("event: decision\n")[1]?.split("\n\n")[0];
     expect(decision).toBeTruthy();
   });

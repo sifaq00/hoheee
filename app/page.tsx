@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentEvent, TokenSummary } from "@/lib/pipeline/state";
-import { stripToolCallXml } from "@/lib/pipeline/flash";
+import { stripToolCallXml } from "@/lib/pipeline/orchestrator";
 import { streamSSE } from "@/lib/client/sse";
 import { fmtNum } from "@/lib/client/format";
 import TokenCard from "@/components/TokenCard";

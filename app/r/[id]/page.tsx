@@ -68,7 +68,7 @@ export default async function ReportPage({
             Research
           </h1>
           <p className="text-sm text-zinc-400">
-            Research tool, not financial advice. Analysis takes 5-15 minutes.
+            Research tool, not financial advice. Analysis takes under a minute.
           </p>
         </header>
 
@@ -138,11 +138,10 @@ export default async function ReportPage({
       </main>
       <footer className="mt-6 w-full max-w-2xl border-t border-zinc-800 pt-4 text-xs leading-relaxed text-zinc-500">
         <p>
-          Each analysis takes about 13-20 minutes and consumes significant
-          reasoning-model tokens across analysts, debates, and risk review.
-          New tokens have thin data — low liquidity and short history make
-          signals unreliable. This system can be wrong: output is automated
-          research, not financial advice.
+          Each analysis takes under a minute: mini analysts plus one debate
+          round. New tokens have thin data — low liquidity and short history
+          make signals unreliable. This system can be wrong: output is
+          automated research, not financial advice.
         </p>
           <p className="mt-2">
             Research background: &ldquo;TradingAgents: Multi-Agents LLM

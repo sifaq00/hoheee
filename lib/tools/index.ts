@@ -96,3 +96,11 @@ export const TOOL_EXECUTORS: Record<string, Executor> = {
   get_coin_metadata: bind(getCoinMetadata),
   get_price_history: bind(getPriceHistory),
 };
+
+// Tool allow-list per analyst slot (single source of truth).
+export const ANALYST_TOOLS: Record<"onchain" | "technical" | "sentiment" | "news", string[]> = {
+  onchain: ["get_token_profile", "get_top_pools", "get_risk_report", "get_holder_distribution"],
+  technical: ["get_token_profile", "get_price_history"],
+  sentiment: ["get_token_profile", "get_coin_metadata"],
+  news: ["get_coin_metadata", "get_token_profile"],
+};
