@@ -247,12 +247,11 @@ body {
   width: var(--t);
   transform-origin: right;
   transform: rotateY(90deg);
-  writing-mode: vertical-rl;
+  writing-mode: sideways-lr;
 }
 
 .iso-unmirror {
   display: block;
-  transform: scaleX(-1);
 }
 
 .land-stack-detail {
