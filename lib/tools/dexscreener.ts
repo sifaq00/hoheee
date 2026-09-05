@@ -1,3 +1,5 @@
+import type { ChainId } from "@/lib/chains";
+import { CHAINS } from "@/lib/chains";
 import type { TokenSummary } from "@/lib/pipeline/state";
 import { fmtNum as num } from "../format";
 
@@ -18,14 +20,24 @@ export interface DexPair {
 
 const API = "https://api.dexscreener.com/latest/dex/tokens";
 
+function chainApi(chain: ChainId, mint: string): string {
+  if (chain === "solana") return `${API}/${mint}`;
+  return `https://api.dexscreener.com/tokens/v1/${CHAINS[chain].dexChainId}/${mint}`;
+}
+
 async function fetchPairs(mint: string): Promise<DexPair[] | null> {
+  return fetchPairsFor("solana", mint);
+}
+
+async function fetchPairsFor(chain: ChainId, mint: string): Promise<DexPair[] | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 30_000);
   try {
-    const res = await fetch(`${API}/${mint}`, { signal: controller.signal });
+    const res = await fetch(chainApi(chain, mint), { signal: controller.signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    const pairs = (data as { pairs?: DexPair[] | null }).pairs;
+    const raw = (Array.isArray(data) ? data : (data as { pairs?: DexPair[] | null }).pairs) as DexPair[] | undefined;
+    const pairs = raw as DexPair[] | null | undefined;
     return pairs && pairs.length > 0 ? pairs : null;
   } finally {
     clearTimeout(timer);
@@ -35,6 +47,24 @@ async function fetchPairs(mint: string): Promise<DexPair[] | null> {
 /** Summarize the largest-liquidity pair as structured data. Null = not found; throws on network/HTTP error. */
 export async function getTokenSummary(mint: string): Promise<TokenSummary | null> {
   const pairs = await fetchPairs(mint);
+  if (!pairs) return null;
+  const top = [...pairs].sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0))[0];
+  const summary: TokenSummary = {
+    name: top.baseToken?.name ?? "Unknown",
+    symbol: top.baseToken?.symbol ?? "?",
+    priceUsd: top.priceUsd ?? "n/a",
+    liquidityUsd: top.liquidity?.usd ?? 0,
+    priceChange24h: top.priceChange?.h24 ?? 0,
+  };
+  const mc = top.marketCap ?? top.fdv;
+  if (mc !== undefined) summary.marketCap = mc;
+  if (top.pairCreatedAt) summary.ageDays = Math.floor((Date.now() - top.pairCreatedAt) / 86_400_000);
+  return summary;
+}
+
+/** Chain-aware summary. Same shape on every network. */
+export async function getTokenSummaryFor(chain: ChainId, mint: string): Promise<TokenSummary | null> {
+  const pairs = await fetchPairsFor(chain, mint);
   if (!pairs) return null;
   const top = [...pairs].sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0))[0];
   const summary: TokenSummary = {
@@ -67,8 +97,13 @@ function ageDays(ms?: number): string {
 
 /** Summarize the largest-liquidity pair for a Solana token mint. */
 export async function getTokenProfile(mint: string): Promise<string> {
+  return getTokenProfileFor("solana", mint);
+}
+
+/** Chain-aware token profile. */
+export async function getTokenProfileFor(chain: ChainId, mint: string): Promise<string> {
   return withError("DexScreener", mint, async () => {
-    const pairs = await fetchPairs(mint);
+    const pairs = await fetchPairsFor(chain, mint);
     if (!pairs) return "Token not found on DexScreener (no pairs)";
     const top = [...pairs].sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0))[0];
     const t = top.txns?.h24 ?? {};
@@ -88,8 +123,13 @@ export async function getTokenProfile(mint: string): Promise<string> {
 
 /** List the top 5 pools by liquidity for a Solana token mint. */
 export async function getTopPools(mint: string): Promise<string> {
+  return getTopPoolsFor("solana", mint);
+}
+
+/** Chain-aware top pools. */
+export async function getTopPoolsFor(chain: ChainId, mint: string): Promise<string> {
   return withError("DexScreener", mint, async () => {
-    const pairs = await fetchPairs(mint);
+    const pairs = await fetchPairsFor(chain, mint);
     if (!pairs) return "Token not found on DexScreener (no pairs)";
     const top5 = [...pairs]
       .sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0))

@@ -1,12 +1,15 @@
+import type { ChainId } from "@/lib/chains";
+import { CHAINS } from "@/lib/chains";
 import { runWithTools, type ChatMessage, type ToolCall } from "@/lib/llm";
-import { TOOL_EXECUTORS, TOOL_SPECS } from "@/lib/tools/index";
+import { TOOL_EXECUTORS, TOOL_SPECS, makeExecutors } from "@/lib/tools/index";
 import type { AgentEvent, AgentId, TokenSummary } from "@/lib/pipeline/state";
 
-export function buildBasePrompt(mint: string, summary: TokenSummary): string {
+export function buildBasePrompt(mint: string, summary: TokenSummary, chain: ChainId = "solana"): string {
   const today = new Date().toISOString().slice(0, 10);
+  const net = CHAINS[chain].label;
   return (
-    `You are a Solana token research analyst. Current date: ${today}. ` +
-    `Token: ${summary.name} (${summary.symbol}), mint ${mint}, ` +
+    `You are a ${net} token research analyst. Current date: ${today}. ` +
+    `Token: ${summary.name} (${summary.symbol}), contract ${mint} on ${net}, ` +
     `price ${summary.priceUsd}, 24h change ${summary.priceChange24h}%, ` +
     `liquidity $${summary.liquidityUsd}. ` +
     `Use tools to gather data, then write your final report as markdown. ` +
@@ -18,6 +21,7 @@ export function buildBasePrompt(mint: string, summary: TokenSummary): string {
 export async function runAnalyst(params: {
   agent: AgentId;
   mint: string;
+  chain?: ChainId;
   summary: TokenSummary;
   systemRole: string;
   toolNames: string[];
@@ -27,19 +31,22 @@ export async function runAnalyst(params: {
   timeoutMs?: number;
   signal?: AbortSignal;
 }): Promise<string> {
+  const chain: ChainId = params.chain ?? "solana";
+  const net = CHAINS[chain].label;
+  const executors = chain === "solana" ? TOOL_EXECUTORS : makeExecutors(chain);
   const tools = params.toolNames.map((n) => TOOL_SPECS[n]).filter(Boolean);
   const messages: ChatMessage[] = [
-    { role: "system", content: `${buildBasePrompt(params.mint, params.summary)}\n\n${params.systemRole}` },
+    { role: "system", content: `${buildBasePrompt(params.mint, params.summary, chain)}\n\n${params.systemRole}` },
     {
       role: "user",
       content:
-        `Analyze Solana token ${params.summary.name} (${params.summary.symbol}) ` +
-        `with mint ${params.mint}. Call the relevant tools with {"mint": "${params.mint}"} ` +
+        `Analyze ${net} token ${params.summary.name} (${params.summary.symbol}) ` +
+        `with contract ${params.mint} on ${net}. Call the relevant tools with {"mint": "${params.mint}"} ` +
         `to gather evidence, then write your final report as markdown.`,
     },
   ];
   const execute = async (call: ToolCall): Promise<string> => {
-    const fn = TOOL_EXECUTORS[call.function.name];
+    const fn = executors[call.function.name];
     if (!fn) return `unknown tool: ${call.function.name}`;
     try {
       return await fn(call.function.arguments);

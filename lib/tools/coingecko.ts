@@ -1,3 +1,5 @@
+import type { ChainId } from "@/lib/chains";
+import { CHAINS } from "@/lib/chains";
 import { fmtNum as num } from "../format";
 
 const BASE = "https://api.coingecko.com/api/v3";
@@ -39,8 +41,8 @@ async function cgFetch(url: string): Promise<unknown> {
   }
 }
 
-async function resolveId(mint: string): Promise<string> {
-  const data = await cgFetch(`${BASE}/coins/solana/contract/${mint}`);
+async function resolveIdFor(chain: ChainId, mint: string): Promise<string> {
+  const data = await cgFetch(`${BASE}/coins/${CHAINS[chain].geckoPlatform}/contract/${mint}`);
   const id = (data as { id?: string }).id;
   if (!id) throw new NotListedError("no id");
   return id;
@@ -56,8 +58,13 @@ function withCgError(name: string, mint: string, fn: () => Promise<string>): Pro
 
 /** Resolve mint -> CoinGecko id, then fetch coin metadata (categories, description, sentiment, market data). */
 export async function getCoinMetadata(mint: string): Promise<string> {
+  return getCoinMetadataFor("solana", mint);
+}
+
+/** Chain-aware metadata. */
+export async function getCoinMetadataFor(chain: ChainId, mint: string): Promise<string> {
   return withCgError("getCoinMetadata", mint, async () => {
-    const id = await resolveId(mint);
+    const id = await resolveIdFor(chain, mint);
     const c = (await cgFetch(
       `${BASE}/coins/${id}?localization=false&tickers=false&market_data=true&community_data=true&developer_data=false`
     )) as CoinMeta;
@@ -79,8 +86,13 @@ export async function getCoinMetadata(mint: string): Promise<string> {
 
 /** Resolve mint -> CoinGecko id, then fetch 30-day daily price history. */
 export async function getPriceHistory(mint: string): Promise<string> {
+  return getPriceHistoryFor("solana", mint);
+}
+
+/** Chain-aware price history. */
+export async function getPriceHistoryFor(chain: ChainId, mint: string): Promise<string> {
   return withCgError("getPriceHistory", mint, async () => {
-    const id = await resolveId(mint);
+    const id = await resolveIdFor(chain, mint);
     const data = await cgFetch(
       `${BASE}/coins/${id}/market_chart?vs_currency=usd&days=30&interval=daily`
     );
