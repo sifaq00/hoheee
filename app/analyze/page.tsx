@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useLayeredAnalysis } from "@/hooks/useLayeredAnalysis";
+import type { ChainId } from "@/lib/chains";
 import { useWallet } from "@/context/WalletContext";
 import WalletButton from "@/components/WalletButton";
 import MintForm from "@/components/layered/MintForm";
@@ -67,6 +69,7 @@ function Timeline({ step, note }: { step: LayeredState["step"]; note: string | n
 export default function Analyze() {
   const { state, start, retry, reset } = useLayeredAnalysis();
   const { connected, address, setIsModalOpen } = useWallet();
+  const [chain, setChain] = useState<ChainId>("solana");
   const running = state.step === "l1" || state.step === "l2" || state.step === "l3" || state.step === "l4";
   const showFeed = running || state.step === "done" || state.step === "error";
   const done = state.step === "done" && state.decision && state.shareId;
@@ -120,12 +123,14 @@ export default function Analyze() {
                 )}
                 <MintForm
                   disabled={false}
-                  onStart={(mint) => {
+                  chain={chain}
+                  onChain={setChain}
+                  onStart={(c, mint) => {
                     if (!connected) {
                       setIsModalOpen(true);
                       return;
                     }
-                    start(mint, address);
+                    start(c, mint, address);
                   }}
                 />
               </SectionPanel>

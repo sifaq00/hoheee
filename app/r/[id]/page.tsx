@@ -15,6 +15,7 @@ import WalletButton from "@/components/WalletButton";
 export const dynamicParams = true;
 
 interface RunFile {
+  chain?: string | null;
   token: {
     name: string;
     symbol: string;
@@ -59,6 +60,7 @@ async function getRun(id: string, bump: boolean): Promise<(RunFile & { views: nu
   if (dbRow) {
     if (bump) await bumpViews(id);
     return {
+      chain: dbRow.chain ?? null,
       token: { name: dbRow.token.name, symbol: dbRow.token.symbol, price: dbRow.token.price, liquidity: dbRow.token.liquidity, change24h: dbRow.token.change24h },
       reports: dbRow.reports,
       debate: dbRow.debate,
@@ -121,7 +123,9 @@ export default async function ReportPage({
           <section aria-label="Verdict" className={`overflow-hidden rounded border bg-black ${ratingTone(parsed.rating)}`}>
             <div className="flex flex-col items-center gap-1 px-6 py-8 text-center">
               <p className="font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">
-                {run.token.name} ({run.token.symbol}) · {run.views != null ? `${run.views} ${run.views === 1 ? "read" : "reads"}` : "archived"}
+                {run.token.name} ({run.token.symbol})
+                {run.chain ? ` · ${run.chain}` : ""}
+                {" "}· {run.views != null ? `${run.views} ${run.views === 1 ? "read" : "reads"}` : "archived"}
               </p>
               <p className={`font-display mt-2 text-5xl font-black tracking-tight sm:text-6xl ${ratingTone(parsed.rating).split(" ")[0]}`}>
                 {parsed.rating ?? "?"}

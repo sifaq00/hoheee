@@ -27,7 +27,7 @@ describe("layeredReducer", () => {
   });
 
   it("walks L1..L4 to done preserving all data", () => {
-    let s = layeredReducer(initialLayeredState, { type: "START", mint: "m" });
+    let s = layeredReducer(initialLayeredState, { type: "START", chain: "solana", mint: "m" });
     s = layeredReducer(s, { type: "L1_OK", token: { name: "B", price: "1", liquidity: 2, change24h: 3 }, symbol: "B", reports: { onchain: "o", technical: "t", sentiment: "s", news: "n" }, chain: "c1", errors: [] });
     s = layeredReducer(s, { type: "L2_OK", debate: [{ phase: "invest", round: 1, side: "bull", text: "up" }], chain: "c2" });
     s = layeredReducer(s, { type: "L3_OK", risks: { liquidity: "l", rugpath: "r", concentration: "c" }, chain: "c3" });
@@ -69,5 +69,6 @@ describe("layeredReducer", () => {
     expect(s.note).toBeNull();
   });
 });
+
 
 

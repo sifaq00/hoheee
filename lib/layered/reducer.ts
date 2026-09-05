@@ -1,9 +1,11 @@
+import type { ChainId } from "@/lib/chains";
 import type { DebateTurn, L1Result, L3Result, LayerError } from "./types";
 
 export type LayerStep = "idle" | "l1" | "l2" | "l3" | "l4" | "done" | "error";
 
 export interface LayeredState {
   step: LayerStep;
+  chain: ChainId;
   mint: string;
   token: L1Result["token"] | null;
   symbol: string;
@@ -24,6 +26,7 @@ export interface LayeredState {
 
 export const initialLayeredState: LayeredState = {
   step: "idle",
+  chain: "solana",
   mint: "",
   token: null,
   symbol: "",
@@ -43,7 +46,7 @@ export const initialLayeredState: LayeredState = {
 };
 
 export type LayeredAction =
-  | { type: "START"; mint: string }
+  | { type: "START"; chain: ChainId; mint: string }
   | { type: "L1_OK"; token: L1Result["token"]; symbol: string; reports: L1Result["reports"]; chain: string; errors: LayerError[] }
   | { type: "L2_OK"; debate: DebateTurn[]; chain: string }
   | { type: "L3_OK"; risks: L3Result["risks"]; chain: string }
@@ -59,7 +62,7 @@ export type LayeredAction =
 export function layeredReducer(s: LayeredState, a: LayeredAction): LayeredState {
   switch (a.type) {
     case "START":
-      return { ...initialLayeredState, step: "l1", mint: a.mint };
+      return { ...initialLayeredState, step: "l1", chain: a.chain, mint: a.mint };
     case "L1_OK":
       return { ...s, step: "l2", token: a.token, symbol: a.symbol, reports: a.reports, error: null, note: null, chains: { l1: a.chain }, l1Errors: a.errors };
     case "L2_OK":

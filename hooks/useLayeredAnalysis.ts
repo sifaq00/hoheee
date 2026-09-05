@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useReducer, useRef } from "react";
+import type { ChainId } from "@/lib/chains";
 import { streamSSE } from "@/lib/client/sse";
 import { initialLayeredState, layeredReducer, type LayeredState } from "@/lib/layered/reducer";
 import type { L1Result, L2Result, L3Result, L4Result } from "@/lib/layered/types";
@@ -9,6 +10,7 @@ const STORAGE_KEY = "aries:layered-run";
 
 interface SavedLayered {
   v: number;
+  chain: ChainId;
   mint: string;
   token: L1Result["token"];
   symbol: string;
@@ -23,6 +25,7 @@ interface SavedLayered {
 type Step = NonNullable<LayeredState["failedStep"]>;
 
 interface Seed {
+  net: ChainId;
   mint: string;
   wallet?: string;
   chain?: string;
@@ -75,10 +78,11 @@ export function useLayeredAnalysis() {
 
   const runFrom = useCallback(async (from: Step, seed: Seed, signal: AbortSignal) => {
     const mint = seed.mint;
+    const net = seed.net;
     let { token, symbol, reports, debate, risks, chain } = seed;
     if (from === "l1") {
       let done = 0;
-      const l1 = (await streamLayer("/api/l1", { mint, wallet: seed.wallet ?? null }, signal, (type, d) => {
+      const l1 = (await streamLayer("/api/l1", { chainId: net, mint, wallet: seed.wallet ?? null }, signal, (type, d) => {
         if (type === "agent_report" && typeof d.agent === "string" && typeof d.report === "string") {
           done += 1;
           dispatch({ type: "NOTE", note: `L1 analysts ${done}/4 — ${d.agent} done` });
@@ -103,7 +107,7 @@ export function useLayeredAnalysis() {
     if (signal.aborted) return;
     if (from === "l1" || from === "l2") {
       if (!reports || !chain) throw new Error("Missing L1 reports");
-      const l2 = (await streamLayer("/api/l2", { mint, reports, rounds: 2, chain }, signal, (type, d) => {
+      const l2 = (await streamLayer("/api/l2", { chainId: net, mint, reports, rounds: 2, chain }, signal, (type, d) => {
         if (type === "debate_turn" && typeof d.side === "string" && typeof d.text === "string") {
           dispatch({ type: "L2_TURN", turn: { phase: "invest", round: Number(d.round) || 0, side: d.side as "bull" | "bear", text: d.text } });
         }
@@ -116,7 +120,7 @@ export function useLayeredAnalysis() {
     if (from === "l1" || from === "l2" || from === "l3") {
       if (!reports || !debate || !chain) throw new Error("Missing prior layer data");
       let risksDone = 0;
-      const l3 = (await streamLayer("/api/l3", { mint, reports, debate, chain }, signal, (type, d) => {
+      const l3 = (await streamLayer("/api/l3", { chainId: net, mint, reports, debate, chain }, signal, (type, d) => {
         if (type === "agent_report" && typeof d.agent === "string") {
           risksDone += 1;
           dispatch({ type: "NOTE", note: `L3 risk review ${risksDone}/3 — ${d.agent} done` });
@@ -131,7 +135,7 @@ export function useLayeredAnalysis() {
     dispatch({ type: "NOTE", note: "L4 decider sealing verdict" });
     const l4 = (await streamLayer(
       "/api/l4",
-      { mint, token, symbol: symbol ?? "", reports, debate, risks, chain, wallet: seed.wallet ?? null },
+      { chainId: net, mint, token, symbol: symbol ?? "", reports, debate, risks, chain, wallet: seed.wallet ?? null },
       signal,
       () => undefined
     )) as unknown as L4Result;
@@ -139,12 +143,12 @@ export function useLayeredAnalysis() {
   }, []);
 
   const start = useCallback(
-    (mint: string, wallet?: string) => {
+    (net: ChainId, mint: string, wallet?: string) => {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
-      dispatch({ type: "START", mint });
-      void runFrom("l1", { mint, wallet }, controller.signal).catch((err) => {
+      dispatch({ type: "START", chain: net, mint });
+      void runFrom("l1", { net, mint, wallet }, controller.signal).catch((err) => {
         if (controller.signal.aborted) return;
         const s = stateRef.current;
         const step: Step = s.step === "l1" || s.step === "l2" || s.step === "l3" || s.step === "l4" ? s.step : "l1";
@@ -160,7 +164,7 @@ export function useLayeredAnalysis() {
     const controller = new AbortController();
     abortRef.current = controller;
     const step = s.failedStep;
-    const seed: Seed = { mint: s.mint, chain: step === "l2" ? s.chains.l1 : step === "l3" ? s.chains.l2 : step === "l4" ? s.chains.l3 : undefined, token: s.token ?? undefined, symbol: s.symbol, reports: s.reports ?? undefined, debate: s.debate, risks: s.risks ?? undefined };
+    const seed: Seed = { net: s.chain, mint: s.mint, chain: step === "l2" ? s.chains.l1 : step === "l3" ? s.chains.l2 : step === "l4" ? s.chains.l3 : undefined, token: s.token ?? undefined, symbol: s.symbol, reports: s.reports ?? undefined, debate: s.debate, risks: s.risks ?? undefined };
     dispatch({ type: "RETRY" });
     void runFrom(step, seed, controller.signal).catch((err) => failRun(step, controller.signal, err));
   }, [runFrom, failRun]);
@@ -185,7 +189,7 @@ export function useLayeredAnalysis() {
       if (!raw) return;
       const s = JSON.parse(raw) as SavedLayered;
       if (!s || s.v !== 2 || !s.decision) return;
-      dispatch({ type: "START", mint: s.mint });
+      dispatch({ type: "START", chain: (s.chain ?? "solana") as ChainId, mint: s.mint });
       dispatch({ type: "L1_OK", token: s.token, symbol: s.symbol, reports: s.reports, chain: s.chains?.l1 ?? "", errors: [] });
       dispatch({ type: "L2_OK", debate: s.debate, chain: s.chains?.l2 ?? "" });
       dispatch({ type: "L3_OK", risks: s.risks, chain: s.chains?.l3 ?? "" });
@@ -200,6 +204,7 @@ export function useLayeredAnalysis() {
     try {
       const saved: SavedLayered = {
         v: 2,
+        chain: state.chain,
         mint: state.mint,
         token: state.token,
         symbol: state.symbol,
