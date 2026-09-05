@@ -36,23 +36,39 @@ Text pipeline diagram — one run flows left to right:
 
 ```text
 mint → token summary (DexScreener)
-  → 4 analysts in parallel: onchain | technical | sentiment | news
-  → bull vs bear debate (1 round)
-  → decider → final decision (RATING / CONFIDENCE / KEY RISKS / ...)
+  → L1: 4 analysts in parallel: onchain | technical | sentiment | news
+  → L2: bull vs bear debate (2 rounds)
+  → L3: risk review (liquidity | rugpath | concentration, parallel)
+  → L4: decider → final decision (RATING / CONFIDENCE / KEY RISKS / ...)
+  → saved to Supabase, share link /r/<id>
 ```
 
-Each stage streams over Server-Sent Events on `POST /api/analyze`:
+Each layer is one JSON endpoint (`POST /api/l1` … `POST /api/l4`), chained
+by the browser, so every step stays far under the Vercel Hobby 300s ceiling
+(soft budgets: L1 <60s, L2 <90s, L3 <60s, L4 <30s). The legacy flash flow
+(`POST /api/analyze` SSE: `token_found → agent_start → tool_call →
+tool_result → agent_report → debate_turn → decision → done`) still exists
+but the UI now runs the layered flow.
 
-```text
-token_found → agent_start → tool_call → tool_result
-  → agent_report (4 analysts share this channel)
-  → debate_turn (invest phase) → decision → done
+Supabase env (share links):
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=<your-url>          # public read
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>     # public read
+SUPABASE_SERVICE_ROLE_KEY=<service-key>      # server-only write (never to browser)
 ```
 
-Key files: `lib/pipeline/orchestrator.ts` (pipeline), `lib/agents/`
+Run once in the Supabase SQL editor (see
+`docs/superpowers/specs/2026-09-05-layered-pipeline-design.md` for the exact
+statement): create table `reports` with public-read RLS, no public insert.
+
+Key files: `lib/pipeline/orchestrator.ts` (legacy flash pipeline), `lib/layered/`
+(L1-L4 per-layer flow), `lib/agents/`
 (`runAnalyst` runtime + shared types), `lib/tools/` (dexscreener, rugcheck,
-coingecko fetchers + analyst tool lists), `app/api/analyze/route.ts`
-(SSE framing), `app/page.tsx` + `components/` (live feed UI).
+coingecko fetchers + analyst tool lists), `app/api/l1/route.ts` through
+`app/api/l4/route.ts` (layered JSON endpoints), `app/api/analyze/route.ts`
+(legacy flash SSE framing), `app/page.tsx` + `components/layered/` + `hooks/`
+(live layered feed UI, one file per step).
 
 ## Tests
 
