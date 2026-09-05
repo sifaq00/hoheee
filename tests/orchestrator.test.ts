@@ -16,7 +16,7 @@ beforeEach(() => {
       return { ok: true, status: 200, json: async () => ({ pairs: [{ baseToken: { name: "Bonk", symbol: "BONK" }, priceUsd: "0.00002", priceChange: { h24: 5 }, liquidity: { usd: 1000000 } }] }) } as unknown as Response;
     }
     const body = JSON.parse(String((init as { body?: unknown })?.body ?? "{}"));
-    expect(body.max_tokens).toBeLessThanOrEqual(800);
+    expect(body.max_tokens).toBeLessThanOrEqual(1000);
     if (body.stream) {
       const payload = JSON.stringify({
         choices: [{ delta: { content: "RATING: Hold\nCONFIDENCE: Medium\nsummary line" }, finish_reason: "stop" }],

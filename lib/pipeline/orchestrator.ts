@@ -74,7 +74,7 @@ async function runFlashSlot(
       systemRole: systemRole + OUTPUT_GUARD,
       toolNames,
       cap: 1,
-      maxTokens: 400,
+      maxTokens: 700,
       timeoutMs: 12000,
       signal,
       emit,
@@ -159,7 +159,7 @@ export async function runAnalysis(
           "Rebut the bear case directly or open with your strongest case.",
       },
     ];
-    bullArg = await invokeWithRetry(msgs, { maxTokens: 300, timeoutMs: 12000, signal });
+    bullArg = await invokeWithRetry(msgs, { maxTokens: 500, timeoutMs: 12000, signal });
     state.debateHistory += `Bull (round 1):\n${bullArg}\n\n`;
     emit({ type: "debate_turn", phase: "invest", round: 1, side: "bull", text: bullArg });
   } catch (e) {
@@ -179,7 +179,7 @@ export async function runAnalysis(
           "Rebut the bull case directly or open with your strongest case.",
       },
     ];
-    bearArg = await invokeWithRetry(msgs, { maxTokens: 300, timeoutMs: 12000, signal });
+    bearArg = await invokeWithRetry(msgs, { maxTokens: 500, timeoutMs: 12000, signal });
     state.debateHistory += `Bear (round 1):\n${bearArg}\n\n`;
     emit({ type: "debate_turn", phase: "invest", round: 1, side: "bear", text: bearArg });
   } catch (e) {
@@ -198,7 +198,7 @@ export async function runAnalysis(
           DECIDER_STRUCTURE,
       },
     ];
-    state.finalDecision = await invokeWithRetry(msgs, { maxTokens: 800, timeoutMs: 15000, signal });
+    state.finalDecision = await invokeWithRetry(msgs, { maxTokens: 1000, timeoutMs: 15000, signal });
     emit({ type: "decision", markdown: state.finalDecision });
   } catch (e) {
     if (!signal?.aborted) err(emit, "portfolio_manager", e);
