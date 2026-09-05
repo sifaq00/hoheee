@@ -111,20 +111,25 @@ function getSaved(): SavedRun | null {
   return savedCache;
 }
 
+export function getSavedMint(): string {
+  try {
+    return getSaved()?.mint ?? "";
+  } catch {
+    return "";
+  }
+}
+
 // Owns the phase state machine plus the streaming feed. One AbortController
 // per run; reasoning chunks append to the per-agent buffer.
 export function useAnalysis() {
-  const [phase, setPhase] = useState<AnalysisPhase>(() => (getSaved() ? "done" : "idle"));
-  const [token, setToken] = useState<FoundToken | null>(() => getSaved()?.token ?? null);
-  const [agentOrder, setAgentOrder] = useState<string[]>(() => getSaved()?.agentOrder ?? []);
-  const [agents, setAgents] = useState<Record<string, AgentFeedState>>(() => getSaved()?.agents ?? {});
-  const [debates, setDebates] = useState<DebateItem[]>(() => getSaved()?.debates ?? []);
-  const [decision, setDecision] = useState<string | null>(() => getSaved()?.decision ?? null);
-  const [feedErrors, setFeedErrors] = useState<FeedErrorItem[]>(() => getSaved()?.feedErrors ?? []);
-  const [streamError, setStreamError] = useState<string | null>(() => {
-    const s = getSaved();
-    return s && !s.completed ? RESTORED_MSG : null;
-  });
+  const [phase, setPhase] = useState<AnalysisPhase>("idle");
+  const [token, setToken] = useState<FoundToken | null>(null);
+  const [agentOrder, setAgentOrder] = useState<string[]>([]);
+  const [agents, setAgents] = useState<Record<string, AgentFeedState>>({});
+  const [debates, setDebates] = useState<DebateItem[]>([]);
+  const [decision, setDecision] = useState<string | null>(null);
+  const [feedErrors, setFeedErrors] = useState<FeedErrorItem[]>([]);
+  const [streamError, setStreamError] = useState<string | null>(null);
   const [runId, setRunId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const idRef = useRef(0);
@@ -278,6 +283,23 @@ export function useAnalysis() {
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
+  // Restore the last run client-side only (after mount) so SSR and the
+  // first client render match exactly — no hydration mismatch.
+  /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration from localStorage (external store) */
+  useEffect(() => {
+    const s = getSaved();
+    if (!s) return;
+    setToken(s.token);
+    setAgentOrder(s.agentOrder);
+    setAgents(s.agents);
+    setDebates(s.debates);
+    setDecision(s.decision);
+    setFeedErrors(s.feedErrors);
+    setPhase("done");
+    if (!s.completed) setStreamError(RESTORED_MSG);
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
   // Persist the last run (reasoning buffers excluded) at most every 2s so a
   // refresh restores results. Cleared only by explicit reset (New analysis).
   useEffect(() => {
@@ -362,12 +384,20 @@ function PhaseRail({
 
 export default function Home() {
   const { phase, token, agentOrder, agents, debates, decision, feedErrors, streamError, startAnalysis, reset } = useAnalysis();
-  const [mint, setMint] = useState(() => getSaved()?.mint ?? "");
+  const [mint, setMint] = useState("");
   const [touched, setTouched] = useState(false);
   const [preview, setPreview] = useState<TokenPreview | null>(null);
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>("none");
   const [previewError, setPreviewError] = useState("");
   const requestId = useRef(0);
+
+  // Restore the saved mint client-side only (SSR-safe).
+  /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration from localStorage (external store) */
+  useEffect(() => {
+    const m = getSavedMint();
+    if (m) setMint(m);
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const trimmed = mint.trim();
   const valid = MINT_REGEX.test(trimmed);

@@ -62,7 +62,7 @@ export default function AgentCard({ agent, status, tools, results, report }: Age
     <section
       aria-label={`Agent ${agent}`}
       data-testid={`agent-card-${agent}`}
-      className="flex h-80 flex-col rounded border border-zinc-800 bg-zinc-950 p-4"
+      className="flex h-112 flex-col rounded border border-zinc-800 bg-zinc-950 p-4"
     >
       <div className="flex items-center gap-2">
         <span
