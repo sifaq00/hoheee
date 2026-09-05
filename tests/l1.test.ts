@@ -32,6 +32,19 @@ describe("runL1", () => {
     expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(0);
   });
 
+  it("preserves real failure messages for the UI", async () => {
+    global.fetch = vi.fn(async (url: unknown) => {
+      const u = String(url);
+      if (u.includes("dexscreener")) {
+        return { ok: true, status: 200, json: async () => ({ pairs: [{ baseToken: { name: "Bonk", symbol: "BONK" }, priceUsd: "0.00002", priceChange: { h24: 5 }, liquidity: { usd: 1000000 } }] }) } as unknown as Response;
+      }
+      throw new Error("socket hang up");
+    }) as unknown as typeof fetch;
+    const res = await runL1("DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263");
+    expect(res.errors).toHaveLength(4);
+    expect(res.errors.every((e) => e.message.length > 0)).toBe(true);
+  }, 60000);
+
   it("marks blank reports MISSING instead of empty", async () => {
     global.fetch = vi.fn(async (url: unknown) => {
       const u = String(url);

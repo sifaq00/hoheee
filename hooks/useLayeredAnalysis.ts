@@ -98,7 +98,7 @@ export function useLayeredAnalysis() {
       symbol = l1.symbol;
       reports = l1.reports;
       chain = l1.chain;
-      if (!signal.aborted) dispatch({ type: "L1_OK", token, symbol, reports, chain });
+      if (!signal.aborted) dispatch({ type: "L1_OK", token, symbol, reports, chain, errors: l1.errors });
     }
     if (signal.aborted) return;
     if (from === "l1" || from === "l2") {
@@ -186,7 +186,7 @@ export function useLayeredAnalysis() {
       const s = JSON.parse(raw) as SavedLayered;
       if (!s || s.v !== 2 || !s.decision) return;
       dispatch({ type: "START", mint: s.mint });
-      dispatch({ type: "L1_OK", token: s.token, symbol: s.symbol, reports: s.reports, chain: s.chains?.l1 ?? "" });
+      dispatch({ type: "L1_OK", token: s.token, symbol: s.symbol, reports: s.reports, chain: s.chains?.l1 ?? "", errors: [] });
       dispatch({ type: "L2_OK", debate: s.debate, chain: s.chains?.l2 ?? "" });
       dispatch({ type: "L3_OK", risks: s.risks, chain: s.chains?.l3 ?? "" });
       dispatch({ type: "L4_OK", decision: s.decision, shareId: s.shareId });

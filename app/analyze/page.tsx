@@ -141,6 +141,7 @@ export default function Analyze() {
                       token={state.token ?? state.liveToken!}
                       symbol={state.token ? state.symbol : state.liveSymbol}
                       reports={state.reports ?? state.liveReports}
+                      errors={state.l1Errors}
                     />
                   </SectionPanel>
                 ) : null}

@@ -1,4 +1,4 @@
-import type { DebateTurn, L1Result, L3Result } from "./types";
+import type { DebateTurn, L1Result, L3Result, LayerError } from "./types";
 
 export type LayerStep = "idle" | "l1" | "l2" | "l3" | "l4" | "done" | "error";
 
@@ -19,6 +19,7 @@ export interface LayeredState {
   liveToken: L1Result["token"] | null;
   liveSymbol: string;
   liveReports: Partial<L1Result["reports"]>;
+  l1Errors: LayerError[];
 }
 
 export const initialLayeredState: LayeredState = {
@@ -38,11 +39,12 @@ export const initialLayeredState: LayeredState = {
   liveToken: null,
   liveSymbol: "",
   liveReports: {},
+  l1Errors: [],
 };
 
 export type LayeredAction =
   | { type: "START"; mint: string }
-  | { type: "L1_OK"; token: L1Result["token"]; symbol: string; reports: L1Result["reports"]; chain: string }
+  | { type: "L1_OK"; token: L1Result["token"]; symbol: string; reports: L1Result["reports"]; chain: string; errors: LayerError[] }
   | { type: "L2_OK"; debate: DebateTurn[]; chain: string }
   | { type: "L3_OK"; risks: L3Result["risks"]; chain: string }
   | { type: "L4_OK"; decision: string; shareId: string }
@@ -59,7 +61,7 @@ export function layeredReducer(s: LayeredState, a: LayeredAction): LayeredState 
     case "START":
       return { ...initialLayeredState, step: "l1", mint: a.mint };
     case "L1_OK":
-      return { ...s, step: "l2", token: a.token, symbol: a.symbol, reports: a.reports, error: null, note: null, chains: { l1: a.chain } };
+      return { ...s, step: "l2", token: a.token, symbol: a.symbol, reports: a.reports, error: null, note: null, chains: { l1: a.chain }, l1Errors: a.errors };
     case "L2_OK":
       // Live turns already appended via L2_TURN; keep them to avoid doubles.
       return { ...s, step: "l3", debate: s.debate.length > 0 ? s.debate : a.debate, error: null, note: null, chains: { ...s.chains, l2: a.chain } };

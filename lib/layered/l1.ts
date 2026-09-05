@@ -31,32 +31,45 @@ export async function runL1(mint: string, opts: { signal?: AbortSignal; emit?: (
   const slots = Object.keys(ROLES) as Slot[];
   const settled = await Promise.allSettled(
     slots.map(async (agent) => {
-      const report = await runAnalyst({
-        agent,
-        mint,
-        summary,
-        systemRole: ROLES[agent] + GUARD,
-        toolNames: ANALYST_TOOLS[agent],
-        cap: 1,
-        maxTokens: 700,
-        timeoutMs: 12000,
-        signal: opts.signal,
-        emit: (e) => opts.emit?.(e),
-      });
-      const clean = stripToolCallXml(report);
-      opts.emit?.({ type: "agent_report", agent, report: clean });
-      return clean;
+      // One analyst-level retry: transient LLM/tool hiccups are common,
+      // MISSING is the last resort, not the first.
+      let lastErr: unknown = new Error("empty report");
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (opts.signal?.aborted) break;
+        try {
+          const report = await runAnalyst({
+            agent,
+            mint,
+            summary,
+            systemRole: ROLES[agent] + GUARD,
+            toolNames: ANALYST_TOOLS[agent],
+            cap: 1,
+            maxTokens: 700,
+            timeoutMs: 12000,
+            signal: opts.signal,
+            emit: (e) => opts.emit?.(e),
+          });
+          const clean = stripToolCallXml(report);
+          if (clean.trim()) {
+            opts.emit?.({ type: "agent_report", agent, report: clean });
+            return clean;
+          }
+          lastErr = new Error("empty report");
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      throw lastErr;
     })
   );
   const reports = {} as L1Result["reports"];
   const errors: L1Result["errors"] = [];
   settled.forEach((r, i) => {
-    if (r.status === "fulfilled" && r.value.trim()) {
+    if (r.status === "fulfilled") {
       reports[slots[i]] = r.value;
     } else {
       reports[slots[i]] = MISSING_REPORT;
-      const msg = r.status === "rejected" ? (r.reason instanceof Error ? r.reason.message : String(r.reason)) : "empty report";
-      errors.push({ agent: slots[i], message: msg });
+      errors.push({ agent: slots[i], message: r.reason instanceof Error ? r.reason.message : String(r.reason) });
     }
   });
   return {
