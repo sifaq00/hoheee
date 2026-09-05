@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { MISSING_REPORT } from "../lib/agents/types";
 import { runL3 } from "../lib/layered/l3";
 
 const INPUT = {
@@ -25,5 +26,15 @@ describe("runL3", () => {
 
   it("rejects invalid mint without any fetch", async () => {
     await expect(runL3({ ...INPUT, mint: "xxx" })).rejects.toThrow("Invalid Solana mint address");
+    expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(0);
+  });
+
+  it("returns MISSING_REPORT for all slots when all LLM calls fail", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      throw new Error("llm down");
+    });
+    const res = await runL3(INPUT);
+    expect(Object.values(res.risks).every((v) => v === MISSING_REPORT)).toBe(true);
+    expect(res.errors.length).toBe(3);
   });
 });
