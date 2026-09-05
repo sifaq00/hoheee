@@ -118,13 +118,13 @@ body {
 }
 
 .thin-scroll::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 
 .thin-scroll::-webkit-scrollbar-thumb {
   background: #3f3f46;
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
 .thin-scroll::-webkit-scrollbar-track {
@@ -150,7 +150,7 @@ body {
 .md h2 { font-size: 1rem; }
 .md h3,
 .md h4 { font-size: 0.875rem; }
-.md p { margin: 0.5em 0; }
+.md p { margin: 0.5em 0; text-align: justify; hyphens: auto; }
 .md ul,
 .md ol {
   margin: 0.5em 0;
