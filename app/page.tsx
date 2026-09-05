@@ -57,7 +57,9 @@ export default function Home() {
         <div className="w-full max-w-2xl mx-auto flex flex-col gap-6">
           <header className="flex flex-col gap-2 border-b border-zinc-800 pb-4">
             <div className="flex items-center justify-between gap-3">
-              <h1 className="text-xl font-bold tracking-tight">
+              <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight">
+                {/* eslint-disable-next-line @next/next/no-img-element -- static local webp, no optimizer needed */}
+                <img src="/logo.webp" alt="Hoheee logo" width={32} height={32} className="rounded" />
                 Hoheee <span className="text-[#22c55e]">—</span> Solana Token Research
               </h1>
               <WalletButton />

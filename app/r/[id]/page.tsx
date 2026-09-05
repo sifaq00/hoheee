@@ -77,7 +77,9 @@ export default async function ReportPage({
     <div className="min-h-full flex flex-col items-center px-4 py-10">
       <main className="w-full max-w-2xl flex flex-col gap-6">
         <header className="flex flex-col gap-2 border-b border-zinc-800 pb-4">
-          <h1 className="text-xl font-bold tracking-tight">
+          <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight">
+            {/* eslint-disable-next-line @next/next/no-img-element -- static local webp, no optimizer needed */}
+            <img src="/logo.webp" alt="Hoheee logo" width={28} height={28} className="rounded" />
             Hoheee <span className="text-[#22c55e]">—</span> Solana Token
             Research
           </h1>
