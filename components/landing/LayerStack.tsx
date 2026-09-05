@@ -34,8 +34,8 @@ export default function LayerStack() {
               <span aria-hidden="true" className="iso-face iso-left">{l.side}</span>
               <span aria-hidden="true" className="iso-face iso-right"><span className="iso-unmirror">{l.id} · {l.edge}</span></span>
               <span aria-hidden="true" className="iso-face iso-right">{l.id} · {l.edge}</span>
-              <span className="iso-top">
-                {on ? (
+              <span className={`iso-top ${i === 0 ? "iso-top-green" : ""}`}>
+                {i === 0 ? (
                   // eslint-disable-next-line @next/next/no-img-element -- static local webp
                   <img src="/logo.webp" alt="" width={72} height={72} className="iso-mark" />
                 ) : (

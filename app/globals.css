@@ -196,7 +196,7 @@ body {
   border: 1px solid #d0d5db;
 }
 
-.iso-on .iso-top {
+.iso-top-green {
   background: #22c55e;
   border-color: #16a34a;
 }
@@ -234,6 +234,7 @@ body {
 .iso-on .iso-face {
   color: #000;
   font-weight: 700;
+  border-color: #16a34a;
 }
 
 .iso-left {
