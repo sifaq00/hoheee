@@ -335,17 +335,17 @@ export default function Home() {
   const valid = MINT_REGEX.test(trimmed);
   const showValidationError = touched && trimmed.length > 0 && !valid;
 
-  const fetchPreview = useCallback(async (value: string) => {
+  const fetchPreview = useCallback(async (value: string): Promise<boolean> => {
     const id = ++requestId.current;
     setPreviewStatus("loading");
     setPreviewError("");
     try {
       const res = await fetch(`/api/tokens/${encodeURIComponent(value)}`);
-      if (id !== requestId.current) return;
+      if (id !== requestId.current) return false;
       if (res.status === 404) {
         setPreview(null);
         setPreviewStatus("not-found");
-        return;
+        return false;
       }
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as {
@@ -354,16 +354,18 @@ export default function Home() {
         setPreview(null);
         setPreviewStatus("error");
         setPreviewError(data?.error ?? `Preview request failed: ${res.status}`);
-        return;
+        return false;
       }
       const data = (await res.json()) as TokenPreview;
       setPreview(data);
       setPreviewStatus("ok");
+      return true;
     } catch (err) {
-      if (id !== requestId.current) return;
+      if (id !== requestId.current) return false;
       setPreview(null);
       setPreviewStatus("error");
       setPreviewError(err instanceof Error ? err.message : String(err));
+      return false;
     }
   }, []);
 
@@ -378,8 +380,24 @@ export default function Home() {
 
   const fields = preview ? previewFields(preview.summary) : null;
   const changePositive = (fields?.change24h ?? 0) >= 0;
-  const canRun = valid && previewStatus === "ok" && phase === "idle";
+  const [starting, setStarting] = useState(false);
+  const canRun = valid && phase === "idle" && !starting;
   const showFeed = phase === "running" || phase === "done";
+
+  // Single click starts: ensures a fresh preview first when needed, so the
+  // button never eats the first click while preview is still loading.
+  const handleStart = useCallback(() => {
+    if (!valid || phase !== "idle") return;
+    if (previewStatus === "ok" && preview) {
+      startAnalysis(trimmed);
+      return;
+    }
+    setStarting(true);
+    void fetchPreview(trimmed).then((ok) => {
+      setStarting(false);
+      if (ok) startAnalysis(trimmed);
+    });
+  }, [valid, phase, previewStatus, preview, fetchPreview, trimmed, startAnalysis]);
 
   return (
     <div className="min-h-full flex flex-col items-center px-4 py-10">
@@ -418,7 +436,7 @@ export default function Home() {
               if (valid) void fetchPreview(trimmed);
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && valid) void fetchPreview(trimmed);
+              if (e.key === "Enter" && valid) handleStart();
             }}
             className="w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-2 font-mono text-sm text-[#e5e5e5] placeholder:text-zinc-600 focus:border-[#22c55e] focus:outline-none disabled:opacity-50"
           />
@@ -478,10 +496,10 @@ export default function Home() {
           <button
             type="button"
             disabled={!canRun}
-            onClick={() => startAnalysis(trimmed)}
+            onClick={handleStart}
             className="rounded border border-[#22c55e] px-4 py-2 text-sm font-semibold text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black disabled:cursor-not-allowed disabled:border-zinc-700 disabled:text-zinc-600 disabled:hover:bg-transparent"
           >
-            Run analysis
+            {starting ? "Loading preview…" : "Run analysis"}
           </button>
         )}
 
