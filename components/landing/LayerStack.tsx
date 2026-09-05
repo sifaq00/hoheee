@@ -28,7 +28,7 @@ export default function LayerStack() {
               onClick={() => setSel(i)}
               onFocus={() => setSel(i)}
               className={`iso-slab ${on ? "iso-on" : ""}`}
-              style={{ "--z": i } as CSSProperties}
+              style={{ "--z": LAYERS.length - 1 - i } as CSSProperties}
             >
               <span aria-hidden="true" className="iso-face iso-left">{l.side}</span>
               <span aria-hidden="true" className="iso-face iso-right"><span className="iso-unmirror">{l.id} · {l.edge}</span></span>
