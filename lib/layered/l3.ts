@@ -29,7 +29,7 @@ export async function runL3(
             `${MISSING_REPORT_RULE}`,
         },
       ];
-      const report = await invokeWithRetry(msgs, { maxTokens: 500, timeoutMs: 20000, signal: opts.signal });
+      const report = await invokeWithRetry(msgs, { maxTokens: 800, timeoutMs: 20000, signal: opts.signal });
       opts.emit?.(`risk:${slot}`, report);
       return report;
     })
