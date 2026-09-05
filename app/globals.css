@@ -153,7 +153,6 @@ body {
   margin: 8px auto 0;
   transform: rotateX(54deg) rotateZ(45deg);
   transform-style: preserve-3d;
-  filter: drop-shadow(0 30px 40px rgba(22, 163, 74, 0.16));
 }
 
 .iso-slab {
