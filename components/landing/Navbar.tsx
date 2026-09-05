@@ -17,16 +17,16 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-10 z-50 border-b border-white/[0.07] bg-[#0a0a0a]/90 backdrop-blur-md">
+      <header className="sticky top-10 z-50 border-b border-black/10 bg-white/90 backdrop-blur-md">
         <nav aria-label="Primary" className="mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-4">
           <Link href="/" className="flex cursor-pointer items-center gap-2 justify-self-start">
             {/* eslint-disable-next-line @next/next/no-img-element -- static local webp */}
             <img src="/logo.webp" alt="Aries logo" width={28} height={28} className="rounded" />
-            <span className="font-display text-sm font-bold tracking-[0.18em] text-white">ARIES</span>
+            <span className="font-display text-sm font-bold tracking-[0.18em] text-black">ARIES</span>
           </Link>
           <div className="hidden items-center gap-7 justify-self-center lg:flex">
             {LINKS.map((l) => (
-              <a key={l.href} href={l.href} className="font-mono text-[13px] font-medium text-zinc-400 transition-colors hover:text-[#22c55e]">
+              <a key={l.href} href={l.href} className="font-mono text-[13px] font-medium text-zinc-600 transition-colors hover:text-[#16a34a]">
                 {l.label}
               </a>
             ))}
@@ -46,7 +46,7 @@ export default function Navbar() {
               onClick={() => setOpen((v) => !v)}
               aria-label={open ? "Close menu" : "Open menu"}
               aria-expanded={open}
-              className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-md border border-white/15 text-white lg:hidden"
+              className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-md border border-black/15 text-black lg:hidden"
             >
               <span aria-hidden="true" className="font-mono text-lg leading-none">{open ? "×" : "≡"}</span>
             </button>
@@ -55,13 +55,13 @@ export default function Navbar() {
       </header>
 
       {open && (
-        <div className="fixed inset-x-0 top-[104px] bottom-0 z-40 overflow-y-auto bg-[#0a0a0a] px-5 pt-2 pb-10 lg:hidden" role="dialog" aria-label="Menu">
+        <div className="fixed inset-x-0 top-[104px] bottom-0 z-40 overflow-y-auto bg-white px-5 pt-2 pb-10 lg:hidden" role="dialog" aria-label="Menu">
           <ul className="flex flex-col">
             {LINKS.map((l) => (
-              <li key={l.href} className="border-b border-white/[0.07]">
-                <a href={l.href} onClick={() => setOpen(false)} className="flex cursor-pointer items-center justify-between py-4 font-mono text-base font-medium text-white">
+              <li key={l.href} className="border-b border-black/[0.07]">
+                <a href={l.href} onClick={() => setOpen(false)} className="flex cursor-pointer items-center justify-between py-4 font-mono text-base font-medium text-black">
                   {l.label}
-                  <span aria-hidden="true" className="text-zinc-600">→</span>
+                  <span aria-hidden="true" className="text-zinc-400">→</span>
                 </a>
               </li>
             ))}

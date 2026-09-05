@@ -43,13 +43,13 @@ export default function LiveDemo() {
   const visible = reduced ? SCRIPT : SCRIPT.slice(0, count);
 
   return (
-    <section id="live" className="mx-auto max-w-6xl scroll-mt-24 border-t border-white/[0.07] px-4 py-16 md:py-24" aria-labelledby="live-title">
+    <section id="live" className="mx-auto max-w-6xl scroll-mt-24 border-t border-black/[0.07] px-4 py-16 md:py-24" aria-labelledby="live-title">
       <Reveal className="text-center">
-        <p className="font-mono text-[10px] tracking-[0.22em] text-[#22c55e] uppercase">02 — Live loop</p>
-        <h2 id="live-title" className="font-display mt-3 text-3xl font-medium tracking-tight text-white sm:text-4xl">
+        <p className="font-mono text-[10px] tracking-[0.22em] text-[#15803d] uppercase">02 — Live loop</p>
+        <h2 id="live-title" className="font-display mt-3 text-3xl font-medium tracking-tight text-black sm:text-4xl">
           Watch a run, end to end
         </h2>
-        <p className="mx-auto mt-2 max-w-md font-mono text-xs leading-relaxed text-zinc-500">
+        <p className="mx-auto mt-3 max-w-md font-mono text-xs leading-relaxed text-zinc-500">
           Simulated feed. The real thing streams the same way, token by token.
         </p>
       </Reveal>

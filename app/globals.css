@@ -26,8 +26,8 @@ body {
 
 .land-grid {
   background-image:
-    linear-gradient(rgba(34, 197, 94, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(34, 197, 94, 0.055) 1px, transparent 1px);
+    linear-gradient(rgba(22, 163, 74, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(22, 163, 74, 0.09) 1px, transparent 1px);
   background-size: 44px 44px;
   mask-image: radial-gradient(ellipse 90% 80% at 50% 30%, black 30%, transparent 75%);
 }
@@ -154,9 +154,9 @@ body {
   align-items: center;
   gap: 14px;
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 8px;
-  background: #0c0f0c;
+  background: #fff;
   padding: 16px 20px;
   text-align: left;
   transform: translateX(calc(var(--i, 0) * 14px));
@@ -185,7 +185,7 @@ body {
   font-family: var(--font-display);
   font-size: 22px;
   font-weight: 900;
-  color: rgba(34, 197, 94, 0.4);
+  color: rgba(22, 163, 74, 0.35);
   min-width: 44px;
 }
 
@@ -199,7 +199,7 @@ body {
   font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #a1a1aa;
+  color: #52525b;
 }
 
 .land-slice-on .land-slice-name {
@@ -209,11 +209,11 @@ body {
 
 .land-stack-detail {
   margin-top: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   padding: 20px 22px;
   min-height: 172px;
-  background: #000;
+  background: #fff;
 }
 
 /* Live pulse dot. */

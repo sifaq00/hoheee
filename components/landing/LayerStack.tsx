@@ -36,9 +36,9 @@ export default function LayerStack() {
         })}
       </div>
       <div className="land-stack-detail" aria-live="polite">
-        <p className="font-mono text-[10px] tracking-[0.2em] text-[#22c55e] uppercase">{active.id} — {active.meta}</p>
-        <h3 className="font-display mt-1 text-xl font-bold text-white">{active.name}</h3>
-        <p className="mt-2 font-mono text-[13px] leading-relaxed text-zinc-400">{active.desc}</p>
+        <p className="font-mono text-[10px] tracking-[0.2em] text-[#15803d] uppercase">{active.id} — {active.meta}</p>
+        <h3 className="font-display mt-1 text-xl font-bold text-black">{active.name}</h3>
+        <p className="mt-2 font-mono text-[13px] leading-relaxed text-zinc-600">{active.desc}</p>
       </div>
     </div>
   );

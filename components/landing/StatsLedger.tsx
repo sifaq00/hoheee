@@ -17,45 +17,45 @@ const FEED = [
 
 export default function StatsLedger() {
   return (
-    <section id="numbers" className="scroll-mt-24 border-t border-white/[0.07]" aria-labelledby="numbers-title">
+    <section id="numbers" className="scroll-mt-24 border-t border-black/[0.07]" aria-labelledby="numbers-title">
       <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
         <div id="numbers-title">
           <SectionHead no="04 — Numbers" title="Every run leaves a record." lede="Verdict, transcript and risk notes persist per report — with read counts, so the best calls surface themselves." />
         </div>
         <div className="mt-12 grid gap-10 lg:grid-cols-2">
           <Reveal>
-            <div className="rounded-xl border border-white/10 bg-black p-6">
+            <div className="rounded-xl border border-black/10 bg-white p-6 shadow-[0_3px_14px_rgba(0,0,0,0.07)]">
               <div className="flex items-center justify-between">
                 <p className="font-mono text-[11px] font-semibold tracking-[0.18em] text-zinc-500 uppercase">Run ledger</p>
-                <p className="flex items-center gap-2 font-mono text-[11px] font-semibold tracking-[0.14em] text-[#22c55e] uppercase">
+                <p className="flex items-center gap-2 font-mono text-[11px] font-semibold tracking-[0.14em] text-[#15803d] uppercase">
                   <span className="land-live-dot" aria-hidden="true" /> Live
                 </p>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-x-6">
                 {STATS.map((s) => (
-                  <div key={s.k} className="border-t border-white/10 py-3">
-                    <p className="font-display text-2xl font-medium text-white tabular-nums">{s.v}</p>
+                  <div key={s.k} className="border-t border-black/10 py-3">
+                    <p className="font-display text-2xl font-medium text-black tabular-nums">{s.v}</p>
                     <p className="mt-1 text-xs text-zinc-500">{s.k}</p>
                   </div>
                 ))}
               </div>
-              <div className="mt-2 flex flex-col gap-2 border-t border-white/10 pt-4">
+              <div className="mt-2 flex flex-col gap-2 border-t border-black/10 pt-4">
                 {FEED.map((f) => (
                   <p key={f.cost} className="flex justify-between font-mono text-xs text-zinc-500 tabular-nums">
                     <span>{f.label}</span>
-                    <b className="font-medium text-white">{f.cost}</b>
+                    <b className="font-medium text-black">{f.cost}</b>
                   </p>
                 ))}
               </div>
-              <p className="mt-4 text-[11px] leading-relaxed text-zinc-600">
+              <p className="mt-4 text-[11px] leading-relaxed text-zinc-400">
                 Illustrative ledger. Your runs persist to Supabase with per-report read counts.
               </p>
             </div>
           </Reveal>
           <div className="flex flex-col justify-center gap-5">
             <Reveal delay={100}>
-              <h3 className="font-display text-2xl font-bold text-white">One link. The whole case.</h3>
-              <p className="mt-2 max-w-md font-mono text-sm leading-relaxed text-zinc-400">
+              <h3 className="font-display text-2xl font-bold text-black">One link. The whole case.</h3>
+              <p className="mt-2 max-w-md font-mono text-sm leading-relaxed text-zinc-600">
                 Each verdict mints a permanent page: rating up top, transcript and risk notes below, social card included. Built to be sent
                 around, not screenshotted.
               </p>
