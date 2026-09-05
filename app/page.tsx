@@ -303,6 +303,7 @@ export function useAnalysis() {
   // Persist the last run (reasoning buffers excluded) at most every 2s so a
   // refresh restores results. Cleared only by explicit reset (New analysis).
   useEffect(() => {
+    if (phase === "idle" && !token && !decision && agentOrder.length === 0 && debates.length === 0) return;
     const now = Date.now();
     if (now - lastSaveRef.current < 2000) return;
     lastSaveRef.current = now;

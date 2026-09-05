@@ -40,13 +40,27 @@ interface LLMBody {
   max_tokens?: number;
 }
 
+function combineSignals(signals: AbortSignal[]): AbortSignal {
+  const anyFn = (AbortSignal as unknown as { any?: (s: AbortSignal[]) => AbortSignal }).any;
+  if (typeof anyFn === "function") return anyFn.call(AbortSignal, signals);
+  const controller = new AbortController();
+  for (const s of signals) {
+    if (s.aborted) {
+      controller.abort();
+      break;
+    }
+    s.addEventListener("abort", () => controller.abort(), { once: true });
+  }
+  return controller.signal;
+}
+
 async function callLLM(body: LLMBody, attempt = 0, timeoutMs?: number, signal?: AbortSignal): Promise<Response> {
   const { url, key } = getEnv();
   const timeoutController = new AbortController();
   const timer = timeoutMs !== undefined ? setTimeout(() => timeoutController.abort(), timeoutMs) : undefined;
   const combined =
     signal && timeoutMs !== undefined
-      ? AbortSignal.any([signal, timeoutController.signal])
+      ? combineSignals([signal, timeoutController.signal])
       : (signal ?? (timeoutMs !== undefined ? timeoutController.signal : undefined));
   try {
     const res = await fetch(url, {
@@ -110,7 +124,8 @@ export async function streamLLM(
     opts.timeoutMs,
     opts.signal
   );
-  const reader = res.body!.getReader();
+  const reader = res.body?.getReader();
+  if (!reader) return { content: "", reasoning: undefined, toolCalls: [], finishReason: "stop" };
   const decoder = new TextDecoder();
   let buf = "";
   let content = "";
