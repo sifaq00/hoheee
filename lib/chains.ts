@@ -1,4 +1,4 @@
-export type ChainId = "solana" | "ethereum" | "bsc" | "base" | "bitcoin";
+export type ChainId = "solana" | "ethereum" | "bsc" | "base" | "bitcoin" | "robinhood";
 
 export interface ChainDef {
   id: ChainId;
@@ -19,6 +19,7 @@ export const CHAINS: Record<ChainId, ChainDef> = {
   bsc: { id: "bsc", label: "BNB Chain", dexChainId: "bsc", geckoPlatform: "binance-smart-chain", goplusId: "56", wallet: "evm" },
   base: { id: "base", label: "Base", dexChainId: "base", geckoPlatform: "base", goplusId: "8453", wallet: "evm" },
   bitcoin: { id: "bitcoin", label: "Bitcoin", dexChainId: null, geckoPlatform: null, goplusId: null, wallet: "any" },
+  robinhood: { id: "robinhood", label: "Robinhood", dexChainId: "robinhood", geckoPlatform: null, goplusId: "4663", wallet: "evm" },
 };
 
 export function isChainId(v: unknown): v is ChainId {

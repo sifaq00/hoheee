@@ -32,6 +32,7 @@ const SAMPLES: Record<ChainId, { label: string; mint: string }[]> = {
     { label: "TOSHI", mint: "0xac1bd7fA6a0c454fFebc0a9Aa4AbdfA5Becd0d8d5" },
   ],
   bitcoin: [{ label: "BTC", mint: "BTC" }],
+  robinhood: [{ label: "SIZE", mint: "0x0F421d05e67B9E25D754e8e685af91b37bFf6CEf" }],
 };
 
 export default function MintForm({

@@ -2,12 +2,15 @@ import { describe, it, expect } from "vitest";
 import { CHAINS, isChainId, validateAddress } from "../lib/chains";
 
 describe("chains", () => {
-  it("registers 5 chains with distinct dex ids", () => {
-    expect(Object.keys(CHAINS).sort()).toEqual(["base", "bitcoin", "bsc", "ethereum", "solana"]);
+  it("registers 6 chains with distinct dex ids", () => {
+    expect(Object.keys(CHAINS).sort()).toEqual(["base", "bitcoin", "bsc", "ethereum", "robinhood", "solana"]);
     expect(CHAINS.bsc.dexChainId).toBe("bsc");
     expect(CHAINS.ethereum.goplusId).toBe("1");
     expect(CHAINS.solana.goplusId).toBeNull();
     expect(CHAINS.bitcoin.dexChainId).toBeNull();
+    expect(CHAINS.robinhood.dexChainId).toBe("robinhood");
+    expect(CHAINS.robinhood.goplusId).toBe("4663");
+    expect(CHAINS.robinhood.geckoPlatform).toBeNull();
   });
 
   it("validates addresses per chain", () => {
