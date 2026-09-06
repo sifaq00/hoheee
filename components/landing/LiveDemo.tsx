@@ -79,7 +79,7 @@ export default function LiveDemo() {
               ▊
             </span>
           </div>
-          <div ref={feedRef} className="thin-scroll flex h-72 flex-col gap-1.5 overflow-y-auto overflow-x-hidden p-4 font-mono text-xs leading-relaxed" aria-live="off">
+          <div ref={feedRef} className="thin-scroll flex h-[21rem] flex-col gap-1.5 overflow-y-auto overflow-x-hidden p-4 font-mono text-xs leading-relaxed" aria-live="off">
             {visible.map((l, i) => (
               <p key={`${i}-${l.text}`} className={`${TONE[l.tone]} break-all`}>
                 <span className="mr-2 inline-block w-7 text-zinc-600">[{l.tag}]</span>
