@@ -219,7 +219,7 @@ export default function MintForm({
           <h2 className="text-base font-semibold">
             {fields.name} <span className="text-zinc-400">({fields.symbol})</span>
           </h2>
-          <dl className="mt-3 grid grid-cols-3 gap-3 text-sm">
+          <dl className="mt-3 grid grid-cols-1 gap-3 text-sm min-[420px]:grid-cols-3">
             <div>
               <dt className="text-zinc-500">Price</dt>
               <dd className="font-mono">${fields.price}</dd>

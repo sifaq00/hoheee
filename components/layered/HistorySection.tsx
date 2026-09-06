@@ -45,10 +45,10 @@ export default function HistorySection({ wallet }: { wallet: string }) {
         {items.map((r) => (
           <li key={r.id}>
             <a href={`/r/${r.id}`} className="flex items-baseline justify-between gap-3 rounded border border-zinc-800 px-3 py-2 text-sm hover:border-[#22c55e]">
-              <span className="font-mono">
+              <span className="min-w-0 truncate font-mono">
                 {r.symbol} <span className="text-zinc-500">{r.mint.slice(0, 6)}…</span>
               </span>
-              <span className="text-zinc-400">{r.rating}</span>
+              <span className="shrink-0 text-zinc-400">{r.rating}</span>
             </a>
           </li>
         ))}

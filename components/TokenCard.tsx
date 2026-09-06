@@ -19,13 +19,13 @@ export default function TokenCard({ name, symbol, price, liquidity, change24h }:
       data-testid="token-card"
       className="rounded border border-zinc-800 bg-zinc-950 p-4"
     >
-      <h2 className="text-base font-semibold">
+      <h2 className="text-base font-semibold break-words">
         {name} {symbol && <span className="text-zinc-400">({symbol})</span>}
       </h2>
-      <dl className="mt-3 grid grid-cols-3 gap-3 text-sm">
-        <div>
+      <dl className="mt-3 grid grid-cols-1 gap-3 text-sm min-[420px]:grid-cols-3">
+        <div className="min-w-0">
           <dt className="text-zinc-500">Price</dt>
-          <dd className="font-mono">${price}</dd>
+          <dd className="font-mono break-all">${price}</dd>
         </div>
         <div>
           <dt className="text-zinc-500">Liquidity USD</dt>

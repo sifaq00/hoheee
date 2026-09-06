@@ -16,7 +16,7 @@ export default function VerdictBanner({ decision, shareId }: { decision: string;
     <section aria-label="Verdict" className={`anim-in overflow-hidden rounded border ${tone.border} bg-black ${tone.glow}`}>
       <div className="flex flex-col items-center gap-1 px-6 py-8 text-center">
         <p className="font-mono text-[10px] tracking-[0.3em] text-zinc-500 uppercase">Final verdict</p>
-        <p className={`font-display text-5xl font-black tracking-tight sm:text-6xl ${tone.text}`}>{parsed.rating ?? "?"}</p>
+        <p className={`font-display text-4xl font-black tracking-tight break-words sm:text-6xl ${tone.text}`}>{parsed.rating ?? "?"}</p>
         {parsed.confidence && (
           <p className="mt-1 font-mono text-xs tracking-widest text-zinc-400 uppercase">Confidence · {parsed.confidence}</p>
         )}

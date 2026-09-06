@@ -127,14 +127,14 @@ export default async function ReportPage({
                 {run.chain ? ` · ${run.chain}` : ""}
                 {" "}· {run.views != null ? `${run.views} ${run.views === 1 ? "read" : "reads"}` : "archived"}
               </p>
-              <p className={`font-display mt-2 text-5xl font-black tracking-tight sm:text-6xl ${ratingTone(parsed.rating).split(" ")[0]}`}>
+              <p className={`font-display mt-2 text-4xl font-black tracking-tight break-words sm:text-6xl ${ratingTone(parsed.rating).split(" ")[0]}`}>
                 {parsed.rating ?? "?"}
               </p>
               {parsed.confidence && (
                 <p className="mt-1 font-mono text-xs tracking-widest text-zinc-400 uppercase">Confidence · {parsed.confidence}</p>
               )}
             </div>
-            <div className="grid grid-cols-3 gap-px border-t border-white/10 bg-white/10 font-mono text-center">
+            <div className="grid grid-cols-1 gap-px border-t border-white/10 bg-white/10 font-mono text-center min-[420px]:grid-cols-3">
               {[
                 { k: "Price", v: `$${run.token.price}` },
                 { k: "Liquidity", v: `$${run.token.liquidity}` },
