@@ -94,14 +94,14 @@ export const EVM_WALLETS: EvmWalletOption[] = [
   {
     id: "trust",
     name: "Trust",
-    icon: "/wallets/trust.svg",
+    icon: "/wallets/trust.png",
     installUrl: "https://trustwallet.com/",
     detect: () => Boolean(typeof window !== "undefined" && window.trustwallet?.request),
   },
   {
     id: "bitkeep",
     name: "Bitget",
-    icon: null,
+    icon: "/wallets/bitget.webp",
     installUrl: "https://web3.bitget.com/",
     detect: () => Boolean(typeof window !== "undefined" && window.bitkeep?.ethereum?.request),
   },
