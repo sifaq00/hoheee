@@ -103,7 +103,7 @@ export default function WalletModal() {
       <div className="absolute inset-0 bg-black/70" onClick={() => setIsModalOpen(false)} />
       <div className={`relative w-full max-w-sm rounded border p-5 ${light ? "border-black/10 bg-white" : "border-zinc-800 bg-zinc-950"}`}>
         <div className="flex items-center justify-between">
-          <h2 className={`text-base font-semibold ${light ? "text-black" : "text-white"}`}>Connect Solana wallet</h2>
+          <h2 className={`text-base font-semibold ${light ? "text-black" : "text-white"}`}>Connect wallet</h2>
           <button type="button" aria-label="Close" onClick={() => setIsModalOpen(false)} className={`rounded px-2 py-1 ${light ? "text-zinc-500 hover:text-black" : "text-zinc-400 hover:text-white"}`}>
             ✕
           </button>

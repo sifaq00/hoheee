@@ -3,9 +3,9 @@ import Reveal from "./Reveal";
 const FAQS = [
   { q: "How long does a run take?", a: "A few minutes. Four analysts run in parallel, debate goes two rounds, risk reviews, decider seals it. Every step streams live so waiting feels like watching, not loading." },
   { q: "Is this financial advice?", a: "No. Aries is a research tool. Output is automated analysis with stated confidence — it can be wrong, especially on new tokens with thin data." },
-  { q: "Do I need a wallet?", a: "Yes. Connect a Solana wallet to run analysis — reports save to your wallet history automatically." },
+  { q: "Do I need a wallet?", a: "Yes. Connect a wallet (Solana or EVM) to run analysis — reports save to your wallet history automatically." },
   { q: "What does a run cost me?", a: "Nothing during the demo — but each run burns real model tokens behind the scenes, so runs are throttled per IP." },
-  { q: "Which tokens work?", a: "Any Solana mint plus Ethereum, BNB Chain and Base contracts with DexScreener coverage. Very new tokens analyze fine, but expect MISSING reports and lower confidence." },
+  { q: "Which tokens work?", a: "Solana mints plus Ethereum, BNB Chain, Base and Robinhood contracts, plus native Bitcoin — with DexScreener coverage. Very new tokens analyze fine, but expect MISSING reports and lower confidence." },
 ];
 
 export default function Faq() {
