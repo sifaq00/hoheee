@@ -81,14 +81,15 @@ export default function LiveDemo() {
           </div>
           <div ref={feedRef} className="thin-scroll flex h-[21rem] flex-col gap-1.5 overflow-y-auto overflow-x-hidden p-4 font-mono text-xs leading-relaxed" aria-live="off">
             {visible.map((l, i) => (
-              <p key={`${i}-${l.text}`} className={`${TONE[l.tone]} break-all`}>
-                <span className="mr-2 inline-block w-7 text-zinc-600">[{l.tag}]</span>
-                {l.text}
+              <p key={`${i}-${l.text}`} className={`${TONE[l.tone]} flex gap-2 break-all`}>
+                <span className="w-12 shrink-0 truncate text-zinc-600">[{l.tag}]</span>
+                <span className="min-w-0">{l.text}</span>
               </p>
             ))}
             {!reduced && count < SCRIPT.length && (
-              <p className="text-zinc-600">
-                <span className="mr-2 inline-block w-7">[…]</span>streaming…
+              <p className="flex gap-2 text-zinc-600">
+                <span className="w-12 shrink-0 truncate">[…]</span>
+                <span>streaming…</span>
               </p>
             )}
           </div>
