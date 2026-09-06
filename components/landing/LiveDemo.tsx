@@ -5,7 +5,7 @@ import Link from "next/link";
 import Reveal from "./Reveal";
 
 const SCRIPT: { tag: string; text: string; tone: "dim" | "green" | "red" | "white" }[] = [
-  { tag: "mint", text: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", tone: "dim" },
+  { tag: "mint", text: "DezXAZ8…PB263", tone: "dim" },
   { tag: "L1", text: "token_found — Bonk ($0.0000204 · liq $1.02M · +5.2% 24h)", tone: "green" },
   { tag: "L1", text: "onchain ✓ 12.4k holders · mint+freeze revoked · top holder 13.7%", tone: "green" },
   { tag: "L1", text: "technical ✓ uptrend · RSI 61 · Raydium + Orca venues", tone: "green" },
