@@ -101,7 +101,7 @@ export const EVM_WALLETS: EvmWalletOption[] = [
   {
     id: "bitkeep",
     name: "Bitget",
-    icon: "/wallets/bitkeep.svg",
+    icon: null,
     installUrl: "https://web3.bitget.com/",
     detect: () => Boolean(typeof window !== "undefined" && window.bitkeep?.ethereum?.request),
   },

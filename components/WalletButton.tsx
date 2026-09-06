@@ -3,7 +3,7 @@
 import { useWallet } from "@/context/WalletContext";
 
 export default function WalletButton() {
-  const { connected, shortAddress, walletIcon, setIsModalOpen, disconnect } = useWallet();
+  const { connected, shortAddress, walletIcon, walletName, setIsModalOpen, disconnect } = useWallet();
   if (!connected) {
     return (
       <button
@@ -27,7 +27,7 @@ export default function WalletButton() {
         <img src={walletIcon} alt="" width={18} height={18} />
       ) : (
         <span aria-hidden="true" className="flex h-[18px] w-[18px] items-center justify-center rounded bg-black font-mono text-[10px] font-bold text-[#22c55e]">
-          Ξ
+          {walletName.slice(0, 1)}
         </span>
       )}
       {shortAddress}

@@ -160,7 +160,7 @@ export default function WalletModal() {
                 <img src={w.icon} alt="" width={24} height={24} />
               ) : (
                 <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center rounded bg-black font-mono text-xs font-bold text-[#22c55e]">
-                  Ξ
+                  {w.name.slice(0, 1)}
                 </span>
               )}
               <span className={`flex-1 font-medium ${light ? "text-black" : "text-white"}`}>{w.name}</span>
