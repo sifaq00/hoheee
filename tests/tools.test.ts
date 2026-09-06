@@ -129,6 +129,20 @@ describe("getCoinMetadata", () => {
     const out = await getCoinMetadata("11111111111111111111111111111111111111111");
     expect(out).toContain("not listed");
   });
+
+  it("retries once on 429 then succeeds", async () => {
+    let calls = 0;
+    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      calls += 1;
+      if (calls === 1) {
+        return { ok: false, status: 429, headers: new Headers({ "Retry-After": "0" }), json: async () => ({}) };
+      }
+      return { ok: true, status: 200, json: async () => ({ id: "bonk", categories: [], description: {}, market_data: {} }) };
+    });
+    const out = await getCoinMetadata("DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263");
+    expect(calls).toBe(3); // resolve 429, resolve retry, metadata
+    expect(out).toContain("CoinGecko: bonk");
+  });
 });
 
 describe("getPriceHistory", () => {

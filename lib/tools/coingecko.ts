@@ -27,7 +27,7 @@ interface CoinMeta {
 
 class NotListedError extends Error {}
 
-async function cgFetch(url: string): Promise<unknown> {
+async function cgFetch(url: string, retried = false): Promise<unknown> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 30_000);
   try {
@@ -36,6 +36,11 @@ async function cgFetch(url: string): Promise<unknown> {
       headers: { "User-Agent": UA, Accept: "application/json" },
     });
     if (res.status === 404) throw new NotListedError("404");
+    if (res.status === 429 && !retried) {
+      const waitMs = Math.min(Number(res.headers.get("Retry-After") ?? 5) * 1000 || 5000, 15_000);
+      await new Promise((r) => setTimeout(r, waitMs));
+      return cgFetch(url, true);
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } finally {
