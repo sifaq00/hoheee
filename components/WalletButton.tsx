@@ -21,13 +21,25 @@ export default function WalletButton() {
         const hex = (await req({ method: "eth_getBalance", params: [address, "latest"] })) as string;
         setBalance(`${(Number(BigInt(hex)) / 1e18).toFixed(4)} native`);
       } else if (!isEvm) {
-        const res = await fetch("https://api.mainnet-beta.solana.com", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getBalance", params: [address] }),
-        });
-        const data = (await res.json()) as { result?: { value?: number } };
-        const lamports = data.result?.value;
+        const endpoints = ["https://api.mainnet-beta.solana.com", "https://solana-rpc.publicnode.com"];
+        let lamports: number | undefined;
+        for (const url of endpoints) {
+          try {
+            const res = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getBalance", params: [address] }),
+            });
+            if (!res.ok) continue;
+            const data = (await res.json()) as { result?: { value?: number } };
+            if (typeof data.result?.value === "number") {
+              lamports = data.result.value;
+              break;
+            }
+          } catch {
+            // try next endpoint
+          }
+        }
         setBalance(lamports === undefined ? "n/a" : `${(lamports / 1e9).toFixed(4)} SOL`);
       } else {
         setBalance("n/a");
