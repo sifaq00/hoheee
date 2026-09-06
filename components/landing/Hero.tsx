@@ -44,7 +44,7 @@ export default function Hero() {
           </Reveal>
         </div>
 
-        <Reveal delay={200}>
+        <Reveal delay={200} className="mx-auto w-full max-w-sm md:mx-0 md:max-w-none">
           <LayerStack />
         </Reveal>
       </div>
