@@ -15,7 +15,7 @@ export default function LayerStack() {
   const active = LAYERS[sel];
 
   return (
-    <div>
+    <div className="flex flex-col items-center">
       <div className="iso-scene" role="tablist" aria-label="Pipeline layers">
         {LAYERS.map((l, i) => {
           const on = i === sel;
@@ -48,7 +48,7 @@ export default function LayerStack() {
         })}
       </div>
       <Reveal>
-        <div className="land-stack-detail text-center md:text-left" aria-live="polite">
+        <div className="land-stack-detail w-full text-center md:text-left" aria-live="polite">
           <p className="font-mono text-[10px] tracking-[0.2em] text-[#15803d] uppercase">{active.id} — {active.meta}</p>
           <h3 className="font-display mt-1 text-xl font-bold text-black">{active.name}</h3>
           <p className="mt-2 font-mono text-[13px] leading-relaxed text-zinc-600">{active.desc}</p>
