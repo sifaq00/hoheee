@@ -5,6 +5,15 @@ import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { SOLANA_WALLETS, EVM_WALLETS, useWallet, type WalletOption } from "@/context/WalletContext";
 
+function evmProvider(id: string): { request?: (args: { method: string }) => Promise<unknown> } | null {
+  if (typeof window === "undefined") return null;
+  if (id === "coinbase") return window.coinbaseWalletExtension ?? window.ethereum ?? null;
+  if (id === "okx") return window.okxwallet ?? window.ethereum ?? null;
+  if (id === "trust") return window.trustwallet ?? window.ethereum ?? null;
+  if (id === "bitkeep") return window.bitkeep?.ethereum ?? window.ethereum ?? null;
+  return window.ethereum ?? null;
+}
+
 function getPhantomProvider() {
   if (typeof window === "undefined") return null;
   if (window.phantom?.solana?.isPhantom) return window.phantom.solana;
@@ -77,11 +86,19 @@ export default function WalletModal() {
           connect(wallet, addr);
           setIsModalOpen(false);
         }
-      } else if (wallet.id === "metamask" && window.ethereum?.request) {
+      } else if (wallet.id === "nightly" && window.nightly?.solana) {
+        const res = await withTimeout(window.nightly.solana.connect!(), 12000, "Nightly connection timed out.");
+        const addr = res?.publicKey?.toString?.();
+        if (addr) {
+          connect(wallet, addr);
+          setIsModalOpen(false);
+        }
+      } else if (wallet.id === "metamask" || wallet.id === "coinbase" || wallet.id === "okx" || wallet.id === "trust" || wallet.id === "bitkeep") {
+        const provider = evmProvider(wallet.id);
         const accounts = (await withTimeout(
-          window.ethereum.request({ method: "eth_requestAccounts" }),
+          provider!.request!({ method: "eth_requestAccounts" }),
           12000,
-          "MetaMask connection timed out. Unlock your wallet."
+          `${wallet.name} connection timed out. Unlock your wallet.`
         )) as unknown;
         const addr = Array.isArray(accounts) ? String(accounts[0] ?? "") : "";
         if (/^0x[0-9a-fA-F]{40}$/.test(addr)) {
