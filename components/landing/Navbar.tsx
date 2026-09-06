@@ -18,7 +18,7 @@ export default function Navbar() {
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-black/10 bg-white/90 backdrop-blur-md">
-        <nav aria-label="Primary" className="mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-4">
+        <nav aria-label="Primary" className="mx-auto grid h-16 max-w-6xl grid-cols-2 items-center px-4 lg:grid-cols-[1fr_auto_1fr]">
           <Link href="/" className="flex cursor-pointer items-center gap-2 justify-self-start">
             {/* eslint-disable-next-line @next/next/no-img-element -- static local webp */}
             <img src="/logo.webp" alt="Aries logo" width={28} height={28} className="rounded" />
@@ -40,9 +40,10 @@ export default function Navbar() {
             </span>
             <Link
               href="/analyze"
-              className="cursor-pointer rounded-md bg-[#22c55e] px-4 py-2 font-mono text-[13px] font-bold text-black transition-colors hover:bg-[#4ade80]"
+              className="cursor-pointer rounded-md bg-[#22c55e] px-3 py-2 font-mono text-xs font-bold text-black transition-colors hover:bg-[#4ade80] sm:px-4 sm:text-[13px]"
             >
-              Run analysis
+              <span className="sm:hidden">Run</span>
+              <span className="hidden sm:inline">Run analysis</span>
             </Link>
             <button
               type="button"
