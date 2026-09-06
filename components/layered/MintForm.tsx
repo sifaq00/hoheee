@@ -53,6 +53,7 @@ export default function MintForm({
   const [previewError, setPreviewError] = useState("");
   const requestId = useRef(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipDebounceRef = useRef(false);
 
   const trimmed = mint.trim();
   const valid = validateAddress(chain, trimmed);
@@ -95,6 +96,10 @@ export default function MintForm({
 
   useEffect(() => {
     if (!valid || disabled) return;
+    if (skipDebounceRef.current) {
+      skipDebounceRef.current = false;
+      return;
+    }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       void fetchPreview(trimmed);
@@ -114,6 +119,7 @@ export default function MintForm({
     (value: string) => {
       if (disabled) return;
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      skipDebounceRef.current = true;
       setMint(value);
       setTouched(true);
       setPreviewStatus("none");
