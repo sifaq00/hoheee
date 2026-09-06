@@ -1,4 +1,5 @@
 import { isChainId, validateAddress } from "@/lib/chains";
+import { getBtcSummary } from "@/lib/tools/coingecko";
 import { getTokenSummaryFor } from "@/lib/tools/dexscreener";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ export async function GET(
     return Response.json({ error: "Invalid chain or address" }, { status: 400 });
   }
   try {
-    const summary = await getTokenSummaryFor(chain, mint);
+    const summary = chain === "bitcoin" ? await getBtcSummary() : await getTokenSummaryFor(chain, mint);
     if (!summary) {
       return Response.json({ error: "Token not found" }, { status: 404 });
     }
